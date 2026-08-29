@@ -1,8 +1,6 @@
 import { User } from '../types';
 
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5001' 
-  : `http://${window.location.hostname}:5001`;
+const API_BASE = 'https://spychat-production.up.railway.app';
 
 export class AuthService {
   private static tokenKey = 'spychat_access_token';
