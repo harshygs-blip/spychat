@@ -1,0 +1,80 @@
+import { Response } from 'express';
+import { db } from '../database/db';
+import { AuthenticatedRequest } from '../middleware/auth';
+
+export function searchUsers(req: AuthenticatedRequest, res: Response): void {
+  const query = req.query.q as string;
+  if (!query || query.trim().length === 0) {
+    res.json({ users: [] });
+    return;
+  }
+
+  const results = db.searchUsers(query.trim(), req.userId!);
+  res.json({ users: results });
+}
+
+export function getUserPublicProfile(req: AuthenticatedRequest, res: Response): void {
+  const targetId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const user = db.findUserById(targetId);
+
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  // Never return email, password_hash, or IP!
+  res.json({
+    user: {
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      avatar_id: user.avatar_id,
+      public_key: user.public_key,
+      last_seen: user.privacy.last_seen_visibility === 'nobody' ? '' : user.last_seen,
+      created_at: user.created_at
+    }
+  });
+}
+
+export function updateProfile(req: AuthenticatedRequest, res: Response): void {
+  const body = req.body || {};
+  const updates: any = {};
+
+  const displayName = body.display_name || body.displayName;
+  if (displayName) updates.display_name = displayName.trim();
+
+  const avatarId = body.avatar_id || body.avatarId;
+  if (avatarId) updates.avatar_id = avatarId;
+
+  const publicKey = body.public_key || body.publicKey;
+  if (publicKey) updates.public_key = publicKey;
+
+  if (body.privacy) updates.privacy = body.privacy;
+
+  if (body.app_pin !== undefined || body.appPin !== undefined) {
+    updates.app_pin = body.app_pin !== undefined ? body.app_pin : body.appPin;
+  }
+
+  const businessAuto = body.business_automation || body.businessAutomation;
+  if (businessAuto !== undefined) updates.business_automation = businessAuto;
+
+  const updated = db.updateUser(req.userId!, updates);
+  if (!updated) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  res.json({
+    message: 'Profile updated successfully',
+    user: {
+      id: updated.id,
+      username: updated.username,
+      display_name: updated.display_name,
+      avatar_id: updated.avatar_id,
+      email: updated.email,
+      privacy: updated.privacy,
+      app_pin: updated.app_pin,
+      business_automation: updated.business_automation
+    }
+  });
+}

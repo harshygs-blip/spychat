@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SPYCHAT</string>
+    <string name="title_activity_main">SPYCHAT</string>
+    <string name="package_name">com.spychat.app</string>
+    <string name="custom_url_scheme">com.spychat.app</string>
+</resources>

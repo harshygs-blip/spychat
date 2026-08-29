@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "235236089435",
+    "project_id": "andriod-a0911",
+    "storage_bucket": "andriod-a0911.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:235236089435:android:aea0aa1f8ba1a9fdcf297e",
+        "android_client_info": {
+          "package_name": "com.spychat.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfHwgsmsquamNYjeE56wJkHxkVgpbs2U8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
