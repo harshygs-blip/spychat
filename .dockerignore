@@ -1,0 +1,5 @@
+node_modules
+client
+.git
+.github
+.system_generated
