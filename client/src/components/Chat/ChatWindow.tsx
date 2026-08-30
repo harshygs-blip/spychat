@@ -120,7 +120,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<any>(null);
 
-  const peer = conversation.peer;
+  const peer = conversation.peer || {
+    id: (conversation.members || []).find(m => m !== currentUser.id) || '',
+    display_name: 'Contact',
+    username: 'user',
+    avatar_id: '1'
+  };
+
+  const peerDisplayName = peer?.display_name || peer?.username || 'Contact';
+  const peerUsername = peer?.username ? `@${peer.username}` : '';
+  const peerInitials = (peerDisplayName || 'CO').substring(0, 2).toUpperCase();
+
   const quickReplies: AutoReplyRule[] = currentUser.business_automation?.quick_replies || [
     { trigger: '/price', response: '💰 Our packages start from $49/mo. Contact for custom inquiries.', message_type: 'text' },
     { trigger: '/thanks', response: '🙏 Thank you for reaching out! Let us know if you need anything else.', message_type: 'text' },
@@ -921,14 +931,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               fontWeight: '700',
               color: 'var(--accent-cyan)'
             }}>
-              {peer ? peer.display_name.substring(0, 2).toUpperCase() : '??'}
+              {peerInitials}
             </div>
             <div>
               <div style={{ fontWeight: '700', fontSize: '15px' }}>
-                {peer ? peer.display_name : 'Chat'}
+                {peerDisplayName}
               </div>
               <div style={{ fontSize: '12px', color: isPeerTyping ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>
-                {isPeerTyping ? 'typing...' : `@${peer?.username}`}
+                {isPeerTyping ? 'typing...' : peerUsername}
               </div>
             </div>
           </div>
