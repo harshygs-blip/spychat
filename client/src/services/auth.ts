@@ -1,18 +1,14 @@
 import { User } from '../types';
 
+const API_BASE = 'https://spychat-production.up.railway.app';
+
 export class AuthService {
   private static tokenKey = 'spychat_access_token';
   private static refreshKey = 'spychat_refresh_token';
   private static userKey = 'spychat_user_profile';
 
   public static getApiBase(): string {
-    if (typeof window !== 'undefined') {
-      const isNative = (window as any).Capacitor?.isNativePlatform?.();
-      if (!isNative && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        return 'http://localhost:5001';
-      }
-    }
-    return 'https://spychat-production.up.railway.app';
+    return API_BASE;
   }
 
   public static getAccessToken(): string | null {

@@ -31,6 +31,7 @@ import {
   MapPin,
   Languages,
   Sparkles,
+  Shield,
   Reply
 } from 'lucide-react';
 import { Conversation, Message, User, AutoReplyRule, CatalogItem } from '../../types';
