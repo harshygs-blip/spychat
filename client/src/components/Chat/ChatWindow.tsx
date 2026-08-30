@@ -154,14 +154,44 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       setMessages(localCached);
       setLoading(false);
       scrollToBottom();
+
+      // Clean up any previously garbled or symbol text
+      Promise.all(
+        localCached.map(async (m) => {
+          if (m.message_type === 'text' && (!m.decrypted_text || m.decrypted_text.includes('≡'))) {
+            try {
+              const text = await E2EEService.decryptMessage(m.ciphertext, m.iv || '', conversation.id);
+              return { ...m, decrypted_text: text || m.ciphertext };
+            } catch {
+              return m;
+            }
+          }
+          return m;
+        })
+      ).then(cleanList => {
+        if (isMounted) {
+          LocalVaultService.saveMessages(conversation.id, cleanList);
+          setMessages(cleanList);
+        }
+      });
     }
 
     const fetchMessages = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       try {
         const token = AuthService.getAccessToken();
+        if (!token) {
+          if (isMounted) setLoading(false);
+          return;
+        }
+
         const res = await fetch(`${AuthService.getApiBase()}/messages/${conversation.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
         const data = await res.json();
         
         if (data.messages && isMounted) {
@@ -179,19 +209,33 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             })
           );
 
-          // Merge with local vault
+          // Batch update local vault for performance (Crucial for Physical Devices)
+          const currentVault = LocalVaultService.getMessages(conversation.id);
+          const newVault = [...currentVault];
+
           decryptedList.forEach(m => {
-            LocalVaultService.upsertMessage(conversation.id, m);
+            const idx = newVault.findIndex(exist => exist.id === m.id);
+            if (idx !== -1) {
+              newVault[idx] = { ...newVault[idx], ...m };
+            } else {
+              newVault.push(m);
+            }
             // Confirm to server to purge from server database
             socketService.emit('ack_delivered', { messageId: m.id });
           });
 
-          const allVaultMsgs = LocalVaultService.getMessages(conversation.id);
-          setMessages(allVaultMsgs);
+          LocalVaultService.saveMessages(conversation.id, newVault);
+          setMessages(newVault);
           scrollToBottom();
+        } else if (isMounted && !data.messages) {
+          console.warn('[ChatWindow] No messages array in response:', data);
         }
       } catch (err) {
         console.error('Error loading messages from server queue:', err);
+        // Alert only if network fails completely (helps debug physical devices)
+        if (isMounted) {
+          alert(`Connection Error: ${err instanceof Error ? err.message : String(err)}`);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -220,10 +264,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           }
         }
 
-        // 1. Save to Local Device Vault
-        const updatedList = LocalVaultService.upsertMessage(conversation.id, decryptedMsg);
-        setMessages(updatedList);
-        scrollToBottom();
+        // Functional update to prevent race conditions
+        setMessages(prev => {
+          if (prev.some(m => m.id === decryptedMsg.id)) return prev;
+          const newList = [...prev, decryptedMsg];
+          LocalVaultService.saveMessages(conversation.id, newList);
+          return newList;
+        });
+
+        setTimeout(scrollToBottom, 100);
 
         // 2. Acknowledge delivery to server -> Triggers instant server purge!
         socketService.emit('ack_delivered', { messageId: data.message.id });
@@ -380,10 +429,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       } : undefined
     };
 
-    // Save and render immediately
-    const immediateList = LocalVaultService.upsertMessage(conversation.id, optimisticMsg);
-    setMessages(immediateList);
-    scrollToBottom();
+    // Render immediately in state
+    setMessages(prev => [...prev, optimisticMsg]);
+
+    // Save to local vault in background
+    LocalVaultService.upsertMessage(conversation.id, optimisticMsg);
+    setTimeout(scrollToBottom, 50);
 
     // 2. Relay through Socket.io to server with Reply info
     socketService.emit('send_message', {
@@ -399,11 +450,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }, (res: any) => {
       // Reconcile optimistic message with server acknowledged message
       if (res && res.message) {
-        LocalVaultService.deleteMessage(conversation.id, tempId);
         const decryptedMsg = { ...res.message, decrypted_text: rawText };
-        const updatedList = LocalVaultService.upsertMessage(conversation.id, decryptedMsg);
-        setMessages(updatedList);
-        scrollToBottom();
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.id !== tempId);
+          // Check if message with this ID already exists (from socket event)
+          if (filtered.some(m => m.id === res.message.id)) return filtered;
+          return [...filtered, decryptedMsg];
+        });
+        LocalVaultService.deleteMessage(conversation.id, tempId);
+        LocalVaultService.upsertMessage(conversation.id, decryptedMsg);
+        setTimeout(scrollToBottom, 50);
       }
     });
 
@@ -1043,6 +1099,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     border: '1px solid var(--border-color)',
                     zIndex: 70
                   }}>
+                    <button
+                      onClick={() => {
+                        setShowTopMenu(false);
+                        window.location.reload();
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--accent-primary)',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        borderRadius: '8px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Sparkles size={15} /> Force Sync Chat
+                    </button>
+
                     <button
                       onClick={() => {
                         setShowTopMenu(false);
