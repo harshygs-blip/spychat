@@ -18,10 +18,18 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
 
   useEffect(() => {
     let isCurrent = true;
+    const cleanQuery = query.trim();
+
+    if (!cleanQuery) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchResults = async () => {
       setLoading(true);
       try {
-        const users = await AuthService.searchUsers(query.trim());
+        const users = await AuthService.searchUsers(cleanQuery);
         if (isCurrent) {
           setResults(users);
         }

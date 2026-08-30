@@ -214,17 +214,11 @@ export function setupSocketHandler(io: Server): void {
         db.createMessage(newMsg);
         db.autoSaveChatContact(userId, recipientId);
 
-        // Check if recipient is online
         const isRecipientOnline = userSockets.has(recipientId) && userSockets.get(recipientId)!.size > 0;
-        if (isRecipientOnline) {
-          newMsg.status = 'delivered';
-          // Emit to recipient's room
-          io.to(`user_${recipientId}`).emit('new_message', { message: newMsg });
-          // Live Delivered: Purge from server database immediately (WhatsApp-style zero server retention)
-          db.purgeDeliveredMessage(newMsg.id);
-        } else {
-          console.log(`[Store-and-Forward] Recipient ${recipientId} is offline. Message queued on server temporarily.`);
-        }
+
+        // Emit to recipient personal room AND conversation room
+        io.to(`user_${recipientId}`).emit('new_message', { message: newMsg });
+        io.to(`conv_${conversationId}`).emit('new_message', { message: newMsg });
 
         // Emit to sender for sync
         socket.emit('message_ack', { message: newMsg });

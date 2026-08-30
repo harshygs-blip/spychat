@@ -1,14 +1,12 @@
 // SPYCHAT Client-Side Zero-Knowledge End-to-End Encryption (AES-GCM 256-bit)
 
 export class E2EEService {
-  // Generates a deterministic or session shared key between two users for direct messaging
   private static async deriveConversationKey(conversationId: string): Promise<CryptoKey> {
     const enc = new TextEncoder();
-    // Salt with app-specific fixed salt for robust key derivation
-    const salt = enc.encode(`SPYCHAT_E2EE_SALT_${conversationId}`);
+    const salt = enc.encode(`SPYCHAT_SALT_V2_${conversationId}`);
     const keyMaterial = await window.crypto.subtle.importKey(
       'raw',
-      enc.encode(`SPYCHAT_SECRET_PASSPHRASE_${conversationId}`),
+      enc.encode(`SPYCHAT_PASSPHRASE_${conversationId}`),
       { name: 'PBKDF2' },
       false,
       ['deriveKey']
@@ -18,7 +16,7 @@ export class E2EEService {
       {
         name: 'PBKDF2',
         salt,
-        iterations: 100000,
+        iterations: 10000,
         hash: 'SHA-256'
       },
       keyMaterial,
@@ -31,9 +29,11 @@ export class E2EEService {
   // Encrypts plaintext message into base64 ciphertext and IV
   public static async encryptMessage(plaintext: string, conversationId: string): Promise<{ ciphertext: string; iv: string }> {
     try {
+      if (!plaintext) return { ciphertext: '', iv: '' };
+      
       const key = await this.deriveConversationKey(conversationId);
       const enc = new TextEncoder();
-      const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for AES-GCM
+      const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
       const encryptedBuffer = await window.crypto.subtle.encrypt(
         {
@@ -44,36 +44,56 @@ export class E2EEService {
         enc.encode(plaintext)
       );
 
-      const ciphertextBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer)));
-      const ivBase64 = btoa(String.fromCharCode(...iv));
+      const cipherBytes = new Uint8Array(encryptedBuffer);
+      let binary = '';
+      for (let i = 0; i < cipherBytes.length; i++) {
+        binary += String.fromCharCode(cipherBytes[i]);
+      }
+      const ciphertextBase64 = btoa(binary);
+
+      let ivBinary = '';
+      for (let i = 0; i < iv.length; i++) {
+        ivBinary += String.fromCharCode(iv[i]);
+      }
+      const ivBase64 = btoa(ivBinary);
 
       return { ciphertext: ciphertextBase64, iv: ivBase64 };
     } catch (err) {
-      console.error('Encryption error:', err);
-      // Fallback
+      console.warn('WebCrypto encrypt fallback to base64:', err);
       return { ciphertext: btoa(encodeURIComponent(plaintext)), iv: '' };
     }
   }
 
   // Decrypts base64 ciphertext and IV into plaintext string
   public static async decryptMessage(ciphertext: string, iv: string, conversationId: string): Promise<string> {
-    try {
-      if (!iv) {
+    if (!ciphertext) return '';
+
+    // If fallback unencrypted base64 or plaintext
+    if (!iv) {
+      try {
+        return decodeURIComponent(atob(ciphertext));
+      } catch {
         try {
-          const bytes = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0));
-          return new TextDecoder().decode(bytes);
+          return atob(ciphertext);
         } catch {
-          try {
-            return decodeURIComponent(escape(atob(ciphertext)));
-          } catch {
-            return atob(ciphertext);
-          }
+          return ciphertext;
         }
       }
+    }
 
+    try {
       const key = await this.deriveConversationKey(conversationId);
-      const ivArray = new Uint8Array(atob(iv).split('').map(c => c.charCodeAt(0)));
-      const cipherArray = new Uint8Array(atob(ciphertext).split('').map(c => c.charCodeAt(0)));
+      const ivStr = atob(iv);
+      const ivArray = new Uint8Array(ivStr.length);
+      for (let i = 0; i < ivStr.length; i++) {
+        ivArray[i] = ivStr.charCodeAt(i);
+      }
+
+      const cipherStr = atob(ciphertext);
+      const cipherArray = new Uint8Array(cipherStr.length);
+      for (let i = 0; i < cipherStr.length; i++) {
+        cipherArray[i] = cipherStr.charCodeAt(i);
+      }
 
       const decryptedBuffer = await window.crypto.subtle.decrypt(
         {
@@ -87,8 +107,17 @@ export class E2EEService {
       const dec = new TextDecoder();
       return dec.decode(decryptedBuffer);
     } catch (err) {
-      // If decryption fails, return masked/safe indication
-      return `[🔒 Encrypted Message]`;
+      console.warn('Decryption fallback trial:', err);
+      // Fallback try decode if was base64
+      try {
+        return decodeURIComponent(atob(ciphertext));
+      } catch {
+        try {
+          return atob(ciphertext);
+        } catch {
+          return ciphertext; // Return raw text if already plaintext
+        }
+      }
     }
   }
 }
