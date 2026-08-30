@@ -152,6 +152,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const localCached = LocalVaultService.getMessages(conversation.id);
     if (localCached.length > 0 && isMounted) {
       setMessages(localCached);
+      setLoading(false);
       scrollToBottom();
     }
 
@@ -1269,7 +1270,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       {/* TEXT MESSAGE */}
                       {msg.message_type === 'text' && (
                         <div>
-                          <span>{msg.decrypted_text || '[🔒 Encrypted Message]'}</span>
+                          <span>{msg.decrypted_text || msg.ciphertext || ''}</span>
                           {msg.edited_at && (
                             <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginLeft: '6px' }}>
                               (edited)
