@@ -345,7 +345,33 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     // Client-side E2EE Encrypt
     const { ciphertext, iv } = await E2EEService.encryptMessage(rawText, conversation.id);
 
-    // Relay through Socket.io to server with Reply info
+    // 1. INSTANT OPTIMISTIC RENDER (Zero-Latency UI Display)
+    const tempId = 'temp_' + Date.now();
+    const optimisticMsg: Message = {
+      id: tempId,
+      conversation_id: conversation.id,
+      sender_id: currentUser.id,
+      ciphertext,
+      iv,
+      decrypted_text: rawText,
+      message_type: 'text',
+      created_at: new Date().toISOString(),
+      status: 'sent',
+      silent: isSilentSend,
+      reply_to: replyTargetMsg ? {
+        message_id: replyTargetMsg.id,
+        sender_name: replyTargetMsg.sender_id === currentUser.id ? 'You' : (peer?.display_name || 'Contact'),
+        text_preview: replyTargetMsg.decrypted_text || replyTargetMsg.ciphertext || 'Media file',
+        media_type: replyTargetMsg.message_type
+      } : undefined
+    };
+
+    // Save and render immediately
+    const immediateList = LocalVaultService.upsertMessage(conversation.id, optimisticMsg);
+    setMessages(immediateList);
+    scrollToBottom();
+
+    // 2. Relay through Socket.io to server with Reply info
     socketService.emit('send_message', {
       conversationId: conversation.id,
       recipientId: peer.id,
@@ -355,12 +381,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       messageType: 'text',
       silent: isSilentSend,
       burnerTimerSeconds: burnerSeconds > 0 ? burnerSeconds : undefined,
-      replyTo: replyTargetMsg ? {
-        message_id: replyTargetMsg.id,
-        sender_name: replyTargetMsg.sender_id === currentUser.id ? 'You' : (peer?.display_name || 'Contact'),
-        text_preview: replyTargetMsg.decrypted_text || replyTargetMsg.ciphertext || 'Media file',
-        media_type: replyTargetMsg.message_type
-      } : undefined
+      replyTo: optimisticMsg.reply_to
+    }, (res: any) => {
+      // Reconcile optimistic message with server acknowledged message
+      if (res && res.message) {
+        LocalVaultService.deleteMessage(conversation.id, tempId);
+        const decryptedMsg = { ...res.message, decrypted_text: rawText };
+        const updatedList = LocalVaultService.upsertMessage(conversation.id, decryptedMsg);
+        setMessages(updatedList);
+        scrollToBottom();
+      }
     });
 
     setReplyTargetMsg(null);
@@ -383,6 +413,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         mediaUrl: qr.media_url,
         messageType: qr.message_type,
         durationSeconds: qr.message_type === 'voice' ? 5 : undefined
+      }, (res: any) => {
+        if (res && res.message) {
+          const updatedList = LocalVaultService.upsertMessage(conversation.id, res.message);
+          setMessages(updatedList);
+          scrollToBottom();
+        }
       });
     } else {
       const { ciphertext, iv } = await E2EEService.encryptMessage(qr.response, conversation.id);
@@ -393,6 +429,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         iv,
         textPlain: qr.response,
         messageType: 'text'
+      }, (res: any) => {
+        if (res && res.message) {
+          const decryptedMsg = { ...res.message, decrypted_text: qr.response };
+          const updatedList = LocalVaultService.upsertMessage(conversation.id, decryptedMsg);
+          setMessages(updatedList);
+          scrollToBottom();
+        }
       });
     }
   };
@@ -410,6 +453,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       textPlain: `Product ${prod.title}`,
       productData: prod,
       messageType: 'product'
+    }, (res: any) => {
+      if (res && res.message) {
+        const updatedList = LocalVaultService.upsertMessage(conversation.id, res.message);
+        setMessages(updatedList);
+        scrollToBottom();
+      }
     });
   };
 
@@ -522,6 +571,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               mediaUrl: base64data,
               durationSeconds: recordingDuration,
               messageType: 'voice'
+            }, (res: any) => {
+              if (res && res.message) {
+                const updatedList = LocalVaultService.upsertMessage(conversation.id, res.message);
+                setMessages(updatedList);
+                scrollToBottom();
+              }
             });
           }
         };
@@ -590,6 +645,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               mediaUrl: base64data,
               durationSeconds: recordingDuration,
               messageType: 'round_video'
+            }, (res: any) => {
+              if (res && res.message) {
+                const updatedList = LocalVaultService.upsertMessage(conversation.id, res.message);
+                setMessages(updatedList);
+                scrollToBottom();
+              }
             });
           }
         };
@@ -648,6 +709,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             messageType: 'text',
             silent: isSilentSend,
             locationData: { lat: latitude, lng: longitude }
+          }, (res: any) => {
+            if (res && res.message) {
+              const updatedList = LocalVaultService.upsertMessage(conversation.id, res.message);
+              setMessages(updatedList);
+              scrollToBottom();
+            }
           });
         }
       },
@@ -713,6 +780,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         messageType: 'text',
         silent: isSilentSend,
         burnerTimerSeconds: burnerSeconds > 0 ? burnerSeconds : undefined
+      }, (res: any) => {
+        if (res && res.message) {
+          const decryptedMsg = { ...res.message, decrypted_text: textToSend };
+          const updatedList = LocalVaultService.upsertMessage(conversation.id, decryptedMsg);
+          setMessages(updatedList);
+          scrollToBottom();
+        }
       });
     }, scheduleMinutes * 60 * 1000);
   };
@@ -768,6 +842,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             fileSize: file.size,
             messageType: msgType,
             viewOnce: isViewOnceSend
+          }, (res: any) => {
+            if (res && res.message) {
+              const updatedList = LocalVaultService.upsertMessage(conversation.id, res.message);
+              setMessages(updatedList);
+              scrollToBottom();
+            }
           });
           resolve();
         };

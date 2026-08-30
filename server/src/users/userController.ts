@@ -5,7 +5,8 @@ import { AuthenticatedRequest } from '../middleware/auth';
 export function searchUsers(req: AuthenticatedRequest, res: Response): void {
   const query = req.query.q as string;
   if (!query || query.trim().length === 0) {
-    res.json({ users: [] });
+    const all = db.getAllUsersExcept(req.userId!);
+    res.json({ users: all });
     return;
   }
 

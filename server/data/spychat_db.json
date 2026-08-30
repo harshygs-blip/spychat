@@ -207,6 +207,67 @@
       "contacts": [
         "usr_4ac67bd2217743b3"
       ]
+    },
+    {
+      "id": "usr_6bb4b66eea234123",
+      "email": "test3@gmail.com",
+      "password_hash": "$2b$12$5GhOGZUlgG/zXwwjHQRDkOoGHRhZBcjL5yFPmxwfjzW3qgaRDXAk6",
+      "username": "ag3_274",
+      "display_name": "ag12",
+      "avatar_id": "avatar_8",
+      "public_key": "",
+      "created_at": "2026-08-30T06:25:34.940Z",
+      "updated_at": "2026-08-30T06:25:35.289Z",
+      "last_seen": "2026-08-30T06:25:35.289Z",
+      "privacy": {
+        "last_seen_visibility": "everyone",
+        "online_status_visibility": "everyone",
+        "read_receipts": true,
+        "typing_indicator": true
+      },
+      "business_automation": {
+        "greeting_enabled": true,
+        "greeting_message": "👋 Welcome to my secure channel! How can I assist you today?",
+        "greeting_type": "text",
+        "away_enabled": true,
+        "away_message": "🌙 I am currently offline. Your encrypted message has been received and I will get back to you shortly.",
+        "away_type": "text",
+        "auto_replies_enabled": true,
+        "auto_reply_rules": [
+          {
+            "trigger": "price",
+            "response": "💰 Our packages start from $49/mo.",
+            "message_type": "text"
+          },
+          {
+            "trigger": "info",
+            "response": "🛡️ SPYCHAT provides zero-leakage encrypted communications.",
+            "message_type": "text"
+          },
+          {
+            "trigger": "hi",
+            "response": "Hello! How can I help you today?",
+            "message_type": "text"
+          },
+          {
+            "trigger": "hello",
+            "response": "Hey there! Welcome to my chat.",
+            "message_type": "text"
+          }
+        ],
+        "quick_replies": [
+          {
+            "trigger": "/price",
+            "response": "💰 Our packages start from $49/mo. Contact for custom inquiries.",
+            "message_type": "text"
+          },
+          {
+            "trigger": "/thanks",
+            "response": "🙏 Thank you for connecting with us! Have a great day.",
+            "message_type": "text"
+          }
+        ]
+      }
     }
   ],
   "sessions": [
@@ -237,6 +298,13 @@
       "refresh_token_hash": "$2b$06$N/a6Ux19HfKwt1BQpxh0AOrksq9iEOtz/nwNy6CD3oa4d.CVij.8y",
       "created_at": "2026-08-29T20:54:47.652Z",
       "expires_at": "2026-09-28T20:54:47.653Z"
+    },
+    {
+      "id": "sess_16b2c8b2-bda5-4553-88ad-13997b2fe9d5",
+      "user_id": "usr_6bb4b66eea234123",
+      "refresh_token_hash": "$2b$06$R37QxpZ4sibeOlS2a2U0MO8O3QHL/lbjrgab05.4.nanmOba8cdPq",
+      "created_at": "2026-08-30T06:25:34.979Z",
+      "expires_at": "2026-09-29T06:25:34.979Z"
     }
   ],
   "conversations": [

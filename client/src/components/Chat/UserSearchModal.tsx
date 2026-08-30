@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, X, MessageSquare, Phone, Video, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, X, MessageSquare, Phone, Video, ShieldAlert, Sparkles, UserPlus } from 'lucide-react';
 import { AuthService } from '../../services/auth';
 import { User } from '../../types';
 
@@ -15,22 +15,35 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
+  useEffect(() => {
+    let isCurrent = true;
+    const fetchResults = async () => {
+      setLoading(true);
+      try {
+        const users = await AuthService.searchUsers(query.trim());
+        if (isCurrent) {
+          setResults(users);
+        }
+      } catch (err) {
+        console.error('Search error:', err);
+      } finally {
+        if (isCurrent) setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchResults();
+    }, 150);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
-
-    setLoading(true);
-    setHasSearched(true);
-    try {
-      const users = await AuthService.searchUsers(query);
-      setResults(users);
-    } catch (err) {
-      console.error('Search error:', err);
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -192,7 +205,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
               </div>
             ))}
           </div>
-        ) : hasSearched ? (
+        ) : query.trim().length > 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '60px 20px',

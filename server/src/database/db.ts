@@ -228,6 +228,23 @@ class Database {
       }));
   }
 
+  public getAllUsersExcept(currentUserId: string): Omit<User, 'email' | 'password_hash'>[] {
+    return this.data.users
+      .filter(u => u.id !== currentUserId)
+      .slice(0, 50)
+      .map(u => ({
+        id: u.id,
+        username: u.username,
+        display_name: u.display_name,
+        avatar_id: u.avatar_id,
+        public_key: u.public_key,
+        created_at: u.created_at,
+        updated_at: u.updated_at,
+        last_seen: u.privacy.last_seen_visibility === 'nobody' ? '' : u.last_seen,
+        privacy: u.privacy
+      }));
+  }
+
   public createUser(user: User): User {
     this.data.users.push(user);
     this.save();
