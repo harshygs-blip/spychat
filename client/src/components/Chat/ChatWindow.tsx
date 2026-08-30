@@ -57,7 +57,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isPeerTyping, setIsPeerTyping] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   
   // Voice Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -180,6 +180,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         }
       } catch (err) {
         console.error('Error loading messages from server queue:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -1160,9 +1162,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         )}
 
-        {loading ? (
+        {loading && messages.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>
             Decrypting encrypted stream...
+          </div>
+        ) : messages.length === 0 ? (
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '60px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <Shield size={28} color="var(--accent-cyan)" />
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#cbd5e1' }}>
+              End-to-End Encrypted Chat
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              Messages and calls are secured with 256-bit AES encryption.
+            </span>
           </div>
         ) : (
           messages.map((msg) => {
