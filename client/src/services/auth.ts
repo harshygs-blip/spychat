@@ -82,16 +82,32 @@ export class AuthService {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (!res.ok) {
-        if (res.status === 401) {
-          this.clearSession();
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          localStorage.setItem(this.userKey, JSON.stringify(data.user));
+          return data.user;
         }
-        return null;
       }
 
-      const data = await res.json();
-      localStorage.setItem(this.userKey, JSON.stringify(data.user));
-      return data.user;
+      // If token expired, attempt refresh
+      const refreshToken = this.getRefreshToken();
+      if (refreshToken) {
+        const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken })
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          if (refreshData.accessToken) {
+            localStorage.setItem(this.tokenKey, refreshData.accessToken);
+            return this.getMe();
+          }
+        }
+      }
+
+      return this.getUser();
     } catch {
       return this.getUser();
     }

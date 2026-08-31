@@ -10,11 +10,11 @@ export interface JwtPayload {
 }
 
 export function generateAccessToken(userId: string): string {
-  return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: '15m' });
+  return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: '365d' });
 }
 
 export function generateRefreshToken(userId: string): string {
-  return jwt.sign({ sub: userId }, REFRESH_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ sub: userId }, REFRESH_SECRET, { expiresIn: '365d' });
 }
 
 export function verifyAccessToken(token: string): JwtPayload | null {
