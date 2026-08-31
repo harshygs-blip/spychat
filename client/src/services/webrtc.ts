@@ -87,26 +87,98 @@ export class WebRTCService {
       }
     };
 
+    // Resilient Hardware Media Capture with 4-Tier Fallback
     try {
+      // 1. Try High-Quality Audio & Video
       this.rawAudioStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.localStream = this.rawAudioStream;
       return this.localStream;
-    } catch (err) {
-      console.warn('[WebRTC] HD Camera failed, fallback to standard media:', err);
+    } catch (err: any) {
+      console.warn('[WebRTC] HD constraints failed, trying basic audio/video:', err.message);
+      
       try {
+        // 2. Try Basic Audio & Video without complex constraints
         this.rawAudioStream = await navigator.mediaDevices.getUserMedia({
           audio: true,
           video: this.isAudioOnly ? false : true
         });
         this.localStream = this.rawAudioStream;
         return this.localStream;
-      } catch (err2) {
-        console.warn('[WebRTC] Video capture failed, audio only fallback:', err2);
-        this.rawAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        this.localStream = this.rawAudioStream;
-        this.isAudioOnly = true;
-        return this.localStream;
+      } catch (err2: any) {
+        console.warn('[WebRTC] Audio/Video pair failed, checking individual sources:', err2.message);
+
+        // 3. If Audio Source failed (e.g. mic busy/locked), try Video only + Silent Audio track
+        if (!this.isAudioOnly) {
+          try {
+            const videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            const silentAudio = this.createSilentAudioTrack();
+            if (silentAudio) videoStream.addTrack(silentAudio);
+            this.rawAudioStream = videoStream;
+            this.localStream = videoStream;
+            return this.localStream;
+          } catch (err3) {
+            console.warn('[WebRTC] Video capture also failed:', err3);
+          }
+        }
+
+        // 4. If Video failed, try Audio only
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          this.rawAudioStream = audioStream;
+          this.localStream = audioStream;
+          this.isAudioOnly = true;
+          return this.localStream;
+        } catch (err4) {
+          console.warn('[WebRTC] Hardware mic/camera unavailable. Using synthetic fallback stream:', err4);
+          
+          // 5. Ultimate Fallback: Create synthetic stream so call connects without throwing error
+          const fallbackStream = new MediaStream();
+          const silentAudio = this.createSilentAudioTrack();
+          if (silentAudio) fallbackStream.addTrack(silentAudio);
+          if (!this.isAudioOnly) {
+            const blankVideo = this.createBlankVideoTrack();
+            if (blankVideo) fallbackStream.addTrack(blankVideo);
+          }
+          this.rawAudioStream = fallbackStream;
+          this.localStream = fallbackStream;
+          return this.localStream;
+        }
       }
+    }
+  }
+
+  private createSilentAudioTrack(): MediaStreamTrack | null {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return null;
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      const dest = ctx.createMediaStreamDestination();
+      osc.connect(gain);
+      gain.connect(dest);
+      osc.start();
+      return dest.stream.getAudioTracks()[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  private createBlankVideoTrack(): MediaStreamTrack | null {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#040711';
+        ctx.fillRect(0, 0, 640, 480);
+      }
+      const stream = (canvas as any).captureStream ? (canvas as any).captureStream(15) : null;
+      return stream ? stream.getVideoTracks()[0] || null : null;
+    } catch {
+      return null;
     }
   }
 
