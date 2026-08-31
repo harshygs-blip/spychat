@@ -20,12 +20,6 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
     let isCurrent = true;
     const cleanQuery = query.replace(/^@+/, '').trim();
 
-    if (!cleanQuery) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
-
     const fetchResults = async () => {
       setLoading(true);
       try {
@@ -42,7 +36,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
 
     const timer = setTimeout(() => {
       fetchResults();
-    }, 100);
+    }, 60);
 
     return () => {
       isCurrent = false;

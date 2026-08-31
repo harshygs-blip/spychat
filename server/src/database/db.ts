@@ -208,11 +208,11 @@ class Database {
     return this.data.users.find(u => u.username.toLowerCase() === clean);
   }
 
-  public searchUsers(query: string, currentUserId: string): Omit<User, 'email' | 'password_hash'>[] {
+  public searchUsers(query: string, currentUserId?: string): Omit<User, 'email' | 'password_hash'>[] {
     const clean = query.replace(/^@+/, '').trim().toLowerCase();
-    if (!clean) return [];
     return this.data.users
-      .filter(u => u.id !== currentUserId && (
+      .filter(u => (!currentUserId || u.id !== currentUserId) && (
+        !clean ||
         u.username.toLowerCase().includes(clean) || 
         u.display_name.toLowerCase().includes(clean)
       ))
@@ -229,10 +229,10 @@ class Database {
       }));
   }
 
-  public getAllUsersExcept(currentUserId: string): Omit<User, 'email' | 'password_hash'>[] {
+  public getAllUsersExcept(currentUserId?: string): Omit<User, 'email' | 'password_hash'>[] {
     return this.data.users
-      .filter(u => u.id !== currentUserId)
-      .slice(0, 50)
+      .filter(u => !currentUserId || u.id !== currentUserId)
+      .slice(0, 100)
       .map(u => ({
         id: u.id,
         username: u.username,

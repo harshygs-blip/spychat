@@ -3,13 +3,14 @@ import { db } from '../database/db';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 export function searchUsers(req: AuthenticatedRequest, res: Response): void {
-  const query = req.query.q as string;
-  if (!query || query.trim().length === 0) {
-    res.json({ users: [] });
+  const query = (req.query.q as string || '').trim();
+  if (!query) {
+    const all = db.getAllUsersExcept(req.userId!);
+    res.json({ users: all });
     return;
   }
 
-  const results = db.searchUsers(query.trim(), req.userId!);
+  const results = db.searchUsers(query, req.userId!);
   res.json({ users: results });
 }
 
