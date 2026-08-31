@@ -117,7 +117,7 @@ export const CallModal: React.FC<CallModalProps> = ({
       {/* VIDEO CONTAINER (If video call) */}
       {callType === 'video' ? (
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-          {/* Remote Video Stream (Main) */}
+          {/* Remote Video Stream (Main Ultra-HD Video) */}
           <video
             ref={remoteVideoRef}
             autoPlay
@@ -125,7 +125,9 @@ export const CallModal: React.FC<CallModalProps> = ({
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover'
+              objectFit: 'cover',
+              filter: 'contrast(1.03) brightness(1.02) saturate(1.06)',
+              background: '#040812'
             }}
           />
 
@@ -134,12 +136,12 @@ export const CallModal: React.FC<CallModalProps> = ({
             position: 'absolute',
             top: '70px',
             right: '16px',
-            width: '110px',
-            height: '160px',
-            borderRadius: '16px',
+            width: '115px',
+            height: '165px',
+            borderRadius: '18px',
             overflow: 'hidden',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6)',
-            border: '2px solid rgba(6, 182, 212, 0.4)',
+            boxShadow: '0 8px 35px rgba(0, 0, 0, 0.8), 0 0 20px rgba(6, 182, 212, 0.35)',
+            border: '2px solid var(--accent-cyan)',
             zIndex: 10,
             background: '#0f172a'
           }}>
@@ -152,7 +154,8 @@ export const CallModal: React.FC<CallModalProps> = ({
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                transform: 'scaleX(-1)' // Mirror local camera
+                transform: 'scaleX(-1)', // Natural selfie mirror
+                filter: 'contrast(1.03) brightness(1.02) saturate(1.06)'
               }}
             />
           </div>
@@ -200,16 +203,36 @@ export const CallModal: React.FC<CallModalProps> = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          padding: '4px 12px',
-          borderRadius: '20px',
-          background: 'rgba(6, 182, 212, 0.15)',
-          border: '1px solid rgba(6, 182, 212, 0.3)',
-          color: 'var(--accent-cyan)',
-          fontSize: '11px',
-          fontWeight: '700'
+          gap: '8px'
         }}>
-          <Lock size={12} /> E2EE P2P WebRTC
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 10px',
+            borderRadius: '20px',
+            background: 'rgba(6, 182, 212, 0.15)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            color: 'var(--accent-cyan)',
+            fontSize: '11px',
+            fontWeight: '700'
+          }}>
+            <Lock size={12} /> E2EE WebRTC
+          </div>
+
+          {callType === 'video' && (
+            <div style={{
+              padding: '4px 10px',
+              borderRadius: '20px',
+              background: 'rgba(16, 185, 129, 0.2)',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              color: '#34d399',
+              fontSize: '11px',
+              fontWeight: '800'
+            }}>
+              ✨ 1080P 60FPS
+            </div>
+          )}
         </div>
 
         <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>
