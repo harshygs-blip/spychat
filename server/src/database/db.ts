@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
 
 export interface CatalogItem {
   id: string;
@@ -255,9 +256,32 @@ class Database {
   private save() {
     try {
       fs.writeFileSync(DB_FILE_PATH, JSON.stringify(this.data, null, 2), 'utf-8');
+      this.syncToFirebase();
     } catch (err) {
       console.error('Error saving DB to disk:', err);
     }
+  }
+
+  private syncToFirebase() {
+    try {
+      const payload = JSON.stringify(this.data);
+      const req = https.request({
+        hostname: 'andriod-a0911-default-rtdb.firebaseio.com',
+        path: '/spychat_data.json',
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        }
+      }, (res) => {
+        if (res.statusCode === 200) {
+          console.log('[Firebase RTDB] Cloud database synchronized successfully ☁️');
+        }
+      });
+      req.on('error', () => {});
+      req.write(payload);
+      req.end();
+    } catch {}
   }
 
   // USERS
