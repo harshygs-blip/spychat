@@ -9,9 +9,9 @@ interface FailedAttemptRecord {
 // In-memory brute force protection tracking (IP & Email keys)
 const attemptTracker = new Map<string, FailedAttemptRecord>();
 
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes lockout
-const WINDOW_DURATION_MS = 15 * 60 * 1000;  // 15 minutes rolling window
+const MAX_FAILED_ATTEMPTS = 50;
+const LOCKOUT_DURATION_MS = 30 * 1000; // 30 seconds
+const WINDOW_DURATION_MS = 60 * 1000;  // 1 minute rolling window
 
 export class BruteForceGuard {
   /**

@@ -161,27 +161,25 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 2. Lookup by Email OR Username
+    // 2. Lookup by Email OR Username (case-insensitive & trimmed)
     const user = db.findUserByEmail(cleanIdentifier) || db.findUserByUsername(cleanUsername);
     if (!user) {
+      console.warn(`[Login Attempt] User not found for identifier: "${cleanIdentifier}" / "${cleanUsername}"`);
       const failInfo = BruteForceGuard.recordFailure(cleanIdentifier);
       BruteForceGuard.recordFailure(clientIp);
       res.status(401).json({
-        error: failInfo.locked 
-          ? '🛡️ Maximum login attempts exceeded. Account locked for 15 minutes.' 
-          : `Invalid email/username or password. (${failInfo.remainingAttempts} attempts remaining before 15m lockout)`
+        error: 'No account found with this email or username. Please check spelling or Sign Up.'
       });
       return;
     }
 
     const isMatch = await bcrypt.compare(rawPassword, user.password_hash);
     if (!isMatch) {
+      console.warn(`[Login Attempt] Password mismatch for user: ${user.username} (${user.email})`);
       const failInfo = BruteForceGuard.recordFailure(cleanIdentifier);
       BruteForceGuard.recordFailure(clientIp);
       res.status(401).json({
-        error: failInfo.locked 
-          ? '🛡️ Maximum login attempts exceeded. Account locked for 15 minutes.' 
-          : `Invalid email/username or password. (${failInfo.remainingAttempts} attempts remaining before 15m lockout)`
+        error: 'Incorrect password. Please check your password and try again.'
       });
       return;
     }
