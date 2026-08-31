@@ -300,12 +300,13 @@ class Database {
 
   public searchUsers(query: string, currentUserId?: string): Omit<User, 'email' | 'password_hash'>[] {
     const clean = query.replace(/^@+/, '').trim().toLowerCase();
-    if (!clean || clean.length < 2) return [];
+    if (!clean) return this.getAllUsersExcept(currentUserId);
 
     return this.data.users
       .filter(u => (!currentUserId || u.id !== currentUserId) && (
         u.username.toLowerCase().includes(clean) || 
-        u.display_name.toLowerCase().includes(clean)
+        u.display_name.toLowerCase().includes(clean) ||
+        (u.email && u.email.toLowerCase().includes(clean))
       ))
       .map(u => ({
         id: u.id,
@@ -315,7 +316,7 @@ class Database {
         public_key: u.public_key,
         created_at: u.created_at,
         updated_at: u.updated_at,
-        last_seen: u.privacy.last_seen_visibility === 'nobody' ? '' : u.last_seen,
+        last_seen: u.privacy?.last_seen_visibility === 'nobody' ? '' : u.last_seen,
         privacy: u.privacy
       }));
   }

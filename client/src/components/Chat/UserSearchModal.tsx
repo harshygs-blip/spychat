@@ -20,19 +20,12 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
     let isCurrent = true;
     const cleanQuery = query.replace(/^@+/, '').trim();
 
-    // Privacy-First: Do not query if empty
-    if (!cleanQuery || cleanQuery.length < 2) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
-
     const fetchUsers = async () => {
       setLoading(true);
       try {
         const users = await AuthService.searchUsers(cleanQuery);
         if (isCurrent) {
-          setResults(users);
+          setResults(users || []);
         }
       } catch (err) {
         console.error('Search error:', err);
@@ -43,7 +36,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
 
     const timer = setTimeout(() => {
       fetchUsers();
-    }, 80);
+    }, 60);
 
     return () => {
       isCurrent = false;
@@ -202,7 +195,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
               letterSpacing: '0.5px',
               marginBottom: '4px'
             }}>
-              Found Match ({results.length})
+              {cleanQuery ? `Search Results (${results.length})` : `Available Contacts (${results.length})`}
             </div>
 
             {results.map((user) => (

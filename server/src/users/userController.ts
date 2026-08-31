@@ -3,14 +3,15 @@ import bcrypt from 'bcryptjs';
 import { db } from '../database/db';
 import { AuthenticatedRequest } from '../middleware/auth';
 
-// --- SEARCH USERS (Strict Privacy: Exact / Prefix Tag Match Only) ---
+// --- SEARCH USERS (Smart Instant Search & Contact Discovery) ---
 export function searchUsers(req: AuthenticatedRequest, res: Response): void {
   try {
     const rawQuery = (req.query.q as string || '').trim().replace(/^@+/, '').toLowerCase();
     
-    // Privacy-First: Never dump all users! Require typed username tag
-    if (!rawQuery || rawQuery.length < 2) {
-      res.json({ users: [] });
+    if (!rawQuery) {
+      // Show registered contacts / suggestions
+      const suggestions = db.getAllUsersExcept(req.userId);
+      res.json({ users: suggestions });
       return;
     }
 

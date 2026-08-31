@@ -336,7 +336,9 @@ export class WebRTCService {
 
     this.peerConnection = new RTCPeerConnection({
       iceServers: this.activeIceServers.length > 0 ? this.activeIceServers : ICE_SERVERS.iceServers,
-      iceCandidatePoolSize: 10
+      iceCandidatePoolSize: 10,
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require'
     });
     this.remoteStream = new MediaStream();
 
