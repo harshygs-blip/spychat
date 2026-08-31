@@ -23,6 +23,8 @@ import { PermissionModal } from './components/Common/PermissionModal';
 import { LocalVaultService } from './services/localVault';
 import { ShareAppModal } from './components/Settings/ShareAppModal';
 import { SplashScreen } from './components/Common/SplashScreen';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -499,6 +501,97 @@ export const App: React.FC = () => {
       console.error('Error starting conversation:', err);
     }
   };
+
+  // Handle Android Native Hardware / Gesture Back Button & Web PopState
+  useEffect(() => {
+    const handleBackButtonAction = () => {
+      // 1. If active call is in progress, do not exit accidentally
+      if (activeCall) {
+        return;
+      }
+
+      // 2. If incoming call modal is ringing, decline call on back press
+      if (incomingCall) {
+        handleDeclineIncomingCall();
+        return;
+      }
+
+      // 3. If Share APK modal is open, close it
+      if (showShareAppModal) {
+        setShowShareAppModal(false);
+        return;
+      }
+
+      // 4. If Theme Picker modal is open, close it
+      if (showThemeModal) {
+        setShowThemeModal(false);
+        return;
+      }
+
+      // 5. If User Search modal is open, close it
+      if (showSearch) {
+        setShowSearch(false);
+        return;
+      }
+
+      // 6. If Permission modal is open, close it
+      if (showPermissionModal) {
+        setShowPermissionModal(false);
+        return;
+      }
+
+      // 7. If ChatWindow is open, go back to chat list
+      if (activeConversation) {
+        setActiveConversation(null);
+        reloadConversations();
+        return;
+      }
+
+      // 8. If on another tab (e.g. Spytus, Calls, Business, Settings), switch back to 'chats'
+      if (activeTab !== 'chats') {
+        setActiveTab('chats');
+        return;
+      }
+
+      // 9. If on chats tab with nothing open on Android Native, exit
+      if (Capacitor.isNativePlatform()) {
+        CapacitorApp.exitApp();
+      }
+    };
+
+    let backListener: any = null;
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener('backButton', () => {
+        handleBackButtonAction();
+      }).then(handle => {
+        backListener = handle;
+      });
+    }
+
+    // Also support browser back button via popstate
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      handleBackButtonAction();
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      if (backListener) {
+        backListener.remove();
+      }
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [
+    activeCall,
+    incomingCall,
+    showShareAppModal,
+    showThemeModal,
+    showSearch,
+    showPermissionModal,
+    activeConversation,
+    activeTab,
+    reloadConversations
+  ]);
 
   const handleLogout = () => {
     AuthService.clearSession();
