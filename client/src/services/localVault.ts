@@ -24,7 +24,11 @@ export class LocalVaultService {
     try {
       localStorage.setItem(`${VAULT_PREFIX}${conversationId}`, JSON.stringify(messages));
     } catch (e) {
-      console.error('Failed to save to local vault:', e);
+      console.warn('Failed to save to local vault, attempting trim:', e);
+      try {
+        const trimmed = messages.slice(-100);
+        localStorage.setItem(`${VAULT_PREFIX}${conversationId}`, JSON.stringify(trimmed));
+      } catch {}
     }
   }
 

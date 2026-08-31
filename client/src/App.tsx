@@ -3,7 +3,7 @@ import { AuthService } from './services/auth';
 import { socketService } from './services/socket';
 import { webrtcService } from './services/webrtc';
 import { E2EEService } from './services/encryption';
-import { User, Conversation, ActiveCall } from './types';
+import { User, Conversation, ActiveCall, Message } from './types';
 import { TopHeader } from './components/Navigation/TopHeader';
 import { BottomNav } from './components/Navigation/BottomNav';
 import { AuthModal } from './components/Auth/AuthModal';
@@ -20,6 +20,7 @@ import { ThemePickerModal, ThemeType } from './components/Settings/ThemePickerMo
 import { SpytusModal } from './components/Spytus/SpytusModal';
 import { NotificationService } from './services/notifications';
 import { PermissionModal } from './components/Common/PermissionModal';
+import { LocalVaultService } from './services/localVault';
 
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -234,6 +235,13 @@ export const App: React.FC = () => {
       } else if (msg.message_type === 'round_video') {
         decText = '⭕ Video Note';
       }
+
+      // Save immediately to local device vault so message is NEVER lost when outside chat
+      const fullMsg: Message = {
+        ...msg,
+        decrypted_text: decText
+      };
+      LocalVaultService.upsertMessage(msg.conversation_id, fullMsg);
 
       // Check if message is from contact (not self)
       const isFromOther = msg.sender_id !== currentUser.id;
