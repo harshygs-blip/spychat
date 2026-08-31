@@ -212,18 +212,40 @@ export function setupSocketHandler(io: Server): void {
         };
 
         db.createMessage(newMsg);
-        db.autoSaveChatContact(userId, recipientId);
+        const conv = db.findConversationById(conversationId);
+        const targetRecipientId = recipientId || (conv ? conv.members.find((m: string) => m !== userId) : undefined);
 
-        const isRecipientOnline = userSockets.has(recipientId) && userSockets.get(recipientId)!.size > 0;
+        if (targetRecipientId) {
+          db.autoSaveChatContact(userId, targetRecipientId);
+        }
 
-        // Emit to recipient personal room AND conversation room
-        io.to(`user_${recipientId}`).emit('new_message', { message: newMsg });
-        io.to(`conv_${conversationId}`).emit('new_message', { message: newMsg });
+        const isRecipientOnline = targetRecipientId ? (userSockets.has(targetRecipientId) && userSockets.get(targetRecipientId)!.size > 0) : false;
 
-        // Emit to sender for sync
-        socket.emit('message_ack', { message: newMsg });
+        const senderUser = db.findUserById(userId);
+        const msgWithSender = {
+          ...newMsg,
+          sender_name: senderUser?.display_name || senderUser?.username || 'Contact',
+          sender_username: senderUser?.username,
+          sender_avatar_id: senderUser?.avatar_id
+        };
 
-        if (callback) callback({ success: true, message: newMsg });
+        // 1. Broadcast to each member's personal room for instant notifications and chat list update
+        if (conv) {
+          conv.members.forEach((memberId: string) => {
+            io.to(`user_${memberId}`).emit('new_message', { message: msgWithSender });
+          });
+        }
+        if (targetRecipientId) {
+          io.to(`user_${targetRecipientId}`).emit('new_message', { message: msgWithSender });
+        }
+
+        // 2. Broadcast to conversation room
+        io.to(`conv_${conversationId}`).emit('new_message', { message: msgWithSender });
+
+        // 3. Emit to sender for sync
+        socket.emit('message_ack', { message: msgWithSender });
+
+        if (callback) callback({ success: true, message: msgWithSender });
 
         // --- AUTOMATED TRIGGER LOGIC (WhatsApp Business Greeting, Away, Auto-Reply) ---
         const recipientUser = db.findUserById(recipientId);
