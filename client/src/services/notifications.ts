@@ -52,11 +52,13 @@ export class NotificationService {
     notifications: boolean;
     camera: boolean;
     microphone: boolean;
+    location: boolean;
   }> {
     const results = {
       notifications: false,
       camera: false,
-      microphone: false
+      microphone: false,
+      location: false
     };
 
     // 1. Android Native & Web Notification Permissions
@@ -86,6 +88,23 @@ export class NotificationService {
           audioStream.getTracks().forEach(t => t.stop());
         } catch {}
       }
+    }
+
+    // 3. Live GPS Location Permission
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      await new Promise<void>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            results.location = true;
+            resolve();
+          },
+          () => {
+            results.location = false;
+            resolve();
+          },
+          { timeout: 5000, enableHighAccuracy: false }
+        );
+      });
     }
 
     localStorage.setItem('spychat_permissions_prompted', 'true');

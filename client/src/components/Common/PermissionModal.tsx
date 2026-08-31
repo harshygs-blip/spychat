@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Bell, Camera, Mic, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Shield, Bell, Camera, Mic, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
 import { NotificationService } from '../../services/notifications';
 
 interface PermissionModalProps {
@@ -63,7 +63,7 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
           Enable Permissions
         </h2>
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.4' }}>
-          SPYCHAT needs a few permissions to deliver real-time encrypted messages & calls.
+          SPYCHAT needs permissions to deliver real-time encrypted messages, calls & location sharing.
         </p>
 
         {/* Feature List */}
@@ -126,6 +126,34 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 Required for 1080p HD video calls, audio calling, and voice notes.
+              </div>
+            </div>
+          </div>
+
+          {/* Live GPS Location */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            background: 'rgba(255, 255, 255, 0.04)',
+            padding: '12px',
+            borderRadius: '14px',
+            border: '1px solid rgba(255, 255, 255, 0.06)'
+          }}>
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              padding: '8px',
+              borderRadius: '10px',
+              color: '#ef4444'
+            }}>
+              <MapPin size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#f8fafc' }}>
+                Live GPS Location
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Share encrypted live location and pinpoint pins in chats.
               </div>
             </div>
           </div>

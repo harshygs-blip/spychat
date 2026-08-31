@@ -20,20 +20,26 @@ public class MainActivity extends BridgeActivity {
             WebView webView = this.bridge.getWebView();
             WebSettings settings = webView.getSettings();
             
-            // Enable unblocked WebRTC audio & video autoplay on Android
+            // Enable unblocked WebRTC audio & video autoplay and Geolocation on Android
             settings.setMediaPlaybackRequiresUserGesture(false);
             settings.setJavaScriptCanOpenWindowsAutomatically(true);
             settings.setAllowFileAccess(true);
             settings.setDomStorageEnabled(true);
             settings.setDatabaseEnabled(true);
+            settings.setGeolocationEnabled(true);
 
-            // Grant WebRTC camera & microphone permissions inside Android WebView
+            // Grant WebRTC camera, microphone & Geolocation permissions inside Android WebView
             webView.setWebChromeClient(new WebChromeClient() {
                 @Override
                 public void onPermissionRequest(final PermissionRequest request) {
                     runOnUiThread(() -> {
                         request.grant(request.getResources());
                     });
+                }
+
+                @Override
+                public void onGeolocationPermissionsShowPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
+                    callback.invoke(origin, true, false);
                 }
             });
         }
