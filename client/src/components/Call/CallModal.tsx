@@ -49,22 +49,32 @@ export const CallModal: React.FC<CallModalProps> = ({
 
   // Hook up WebRTC Streams
   useEffect(() => {
-    webrtcService.onRemoteStreamCallback = (stream: MediaStream) => {
+    const handleRemoteStream = (stream: MediaStream) => {
       setRemoteStreamAvailable(true);
       if (remoteVideoRef.current && callType === 'video') {
         remoteVideoRef.current.srcObject = stream;
+        remoteVideoRef.current.play().catch(e => console.warn('Video play error:', e));
       }
       if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = stream;
-        remoteAudioRef.current.play().catch(e => console.warn('Audio play prevented:', e));
+        remoteAudioRef.current.play().catch(e => console.warn('Audio play error:', e));
       }
     };
 
-    // Attach local stream preview
+    webrtcService.onRemoteStreamCallback = handleRemoteStream;
+
+    // If remote stream is already connected
+    const existingRemote = webrtcService.getRemoteStream();
+    if (existingRemote && existingRemote.getTracks().length > 0) {
+      handleRemoteStream(existingRemote);
+    }
+
+    // Attach local stream preview without stopping tracks
     const attachLocalPreview = async () => {
-      const localMedia = await webrtcService.getLocalMedia(callType);
-      if (localVideoRef.current && callType === 'video') {
+      const localMedia = webrtcService.getLocalStream() || await webrtcService.getLocalMedia(callType);
+      if (localVideoRef.current && callType === 'video' && localMedia) {
         localVideoRef.current.srcObject = localMedia;
+        localVideoRef.current.play().catch(() => {});
       }
     };
 

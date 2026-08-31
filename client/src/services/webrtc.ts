@@ -6,8 +6,26 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' }
-  ]
+    { urls: 'stun:stun4.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:global.stun.twilio.com:3478' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
+  ],
+  iceCandidatePoolSize: 10
 };
 
 export type VoiceEffectType = 'normal' | 'robot' | 'deep' | 'radio';
@@ -31,9 +49,26 @@ export class WebRTCService {
   public onRemoteStreamCallback: ((stream: MediaStream) => void) | null = null;
   public onConnectionStateCallback: ((state: RTCPeerConnectionState) => void) | null = null;
 
-  // Initialize Local Media (Camera/Mic)
-  public async getLocalMedia(callType: 'audio' | 'video'): Promise<MediaStream> {
+  public getLocalStream(): MediaStream | null {
+    return this.localStream;
+  }
+
+  public getRemoteStream(): MediaStream | null {
+    return this.remoteStream;
+  }
+
+  // Initialize Local Media (Camera/Mic) - Reuses active stream if already running
+  public async getLocalMedia(callType: 'audio' | 'video', forceNew = false): Promise<MediaStream> {
     this.isAudioOnly = callType === 'audio';
+
+    // If stream already exists and has active tracks, reuse it!
+    if (!forceNew && this.localStream && this.localStream.active) {
+      const audioActive = this.localStream.getAudioTracks().some(t => t.readyState === 'live');
+      const videoActive = this.isAudioOnly || this.localStream.getVideoTracks().some(t => t.readyState === 'live');
+      if (audioActive && videoActive) {
+        return this.localStream;
+      }
+    }
 
     if (this.localStream) {
       this.stopLocalMedia();
@@ -184,7 +219,7 @@ export class WebRTCService {
     }
   }
 
-  // Create RTCPeerConnection
+  // Create RTCPeerConnection with STUN & TURN Relay
   private createPeerConnection(): RTCPeerConnection {
     if (this.peerConnection) {
       this.peerConnection.close();
@@ -206,15 +241,14 @@ export class WebRTCService {
     this.peerConnection.ontrack = (event) => {
       console.log('[WebRTC ontrack] Received remote track:', event.track.kind);
       if (event.streams && event.streams[0]) {
-        event.streams[0].getTracks().forEach(track => {
-          this.remoteStream!.addTrack(track);
-        });
+        this.remoteStream = event.streams[0];
       } else {
-        this.remoteStream!.addTrack(event.track);
+        if (!this.remoteStream) this.remoteStream = new MediaStream();
+        this.remoteStream.addTrack(event.track);
       }
 
       if (this.onRemoteStreamCallback) {
-        this.onRemoteStreamCallback(this.remoteStream!);
+        this.onRemoteStreamCallback(this.remoteStream);
       }
     };
 
@@ -256,7 +290,7 @@ export class WebRTCService {
   // Start Call (Caller creates SDP Offer)
   public async startCall(targetUserId: string, callType: 'audio' | 'video'): Promise<RTCSessionDescriptionInit> {
     this.targetUserId = targetUserId;
-    await this.getLocalMedia(callType);
+    await this.getLocalMedia(callType, true);
     const pc = this.createPeerConnection();
 
     const offer = await pc.createOffer({
@@ -271,7 +305,7 @@ export class WebRTCService {
   // Answer Call (Receiver creates SDP Answer)
   public async answerCall(targetUserId: string, offer: RTCSessionDescriptionInit, callType: 'audio' | 'video'): Promise<RTCSessionDescriptionInit> {
     this.targetUserId = targetUserId;
-    await this.getLocalMedia(callType);
+    await this.getLocalMedia(callType, true);
     const pc = this.createPeerConnection();
 
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
@@ -326,7 +360,7 @@ export class WebRTCService {
   // Flip Camera (Front / Back)
   public async flipCamera(): Promise<MediaStream | null> {
     this.isFrontCamera = !this.isFrontCamera;
-    const newStream = await this.getLocalMedia('video');
+    const newStream = await this.getLocalMedia('video', true);
 
     if (this.peerConnection && newStream) {
       const videoTrack = newStream.getVideoTracks()[0];
@@ -363,11 +397,15 @@ export class WebRTCService {
 
   private stopLocalMedia(): void {
     if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop());
+      this.localStream.getTracks().forEach(track => {
+        try { track.stop(); } catch {}
+      });
       this.localStream = null;
     }
     if (this.rawAudioStream) {
-      this.rawAudioStream.getTracks().forEach(track => track.stop());
+      this.rawAudioStream.getTracks().forEach(track => {
+        try { track.stop(); } catch {}
+      });
       this.rawAudioStream = null;
     }
   }
