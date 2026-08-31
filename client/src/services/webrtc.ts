@@ -1,4 +1,5 @@
 import { socketService } from './socket';
+import { AuthService } from './auth';
 
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
@@ -53,6 +54,25 @@ export class WebRTCService {
   private isAudioOnly: boolean = false;
   private isFrontCamera: boolean = true;
   private pendingCandidates: RTCIceCandidateInit[] = [];
+  private activeIceServers: RTCIceServer[] = ICE_SERVERS.iceServers || [];
+
+  public async refreshTurnServers(): Promise<void> {
+    try {
+      const token = AuthService.getAccessToken();
+      const res = await fetch(`${AuthService.getApiBase()}/calls/turn-servers`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.iceServers && Array.isArray(data.iceServers) && data.iceServers.length > 0) {
+          console.log(`[WebRTC] Loaded ${data.iceServers.length} fresh STUN/TURN relays from enclave`);
+          this.activeIceServers = data.iceServers;
+        }
+      }
+    } catch (e) {
+      console.warn('[WebRTC] Using built-in TURNS relays fallback:', e);
+    }
+  }
 
   // Live Web Audio DSP Chain for Voice Changing
   private audioCtx: AudioContext | null = null;
@@ -314,7 +334,10 @@ export class WebRTCService {
       this.peerConnection = null;
     }
 
-    this.peerConnection = new RTCPeerConnection(ICE_SERVERS);
+    this.peerConnection = new RTCPeerConnection({
+      iceServers: this.activeIceServers.length > 0 ? this.activeIceServers : ICE_SERVERS.iceServers,
+      iceCandidatePoolSize: 10
+    });
     this.remoteStream = new MediaStream();
 
     // Attach local audio & video tracks
@@ -415,6 +438,7 @@ export class WebRTCService {
   // Start Call (Caller creates SDP Offer)
   public async startCall(targetUserId: string, callType: 'audio' | 'video'): Promise<RTCSessionDescriptionInit> {
     this.targetUserId = targetUserId;
+    await this.refreshTurnServers();
     await this.getLocalMedia(callType, true);
     const pc = this.createPeerConnection();
 
@@ -430,6 +454,7 @@ export class WebRTCService {
   // Answer Call (Receiver creates SDP Answer)
   public async answerCall(targetUserId: string, offer: RTCSessionDescriptionInit, callType: 'audio' | 'video'): Promise<RTCSessionDescriptionInit> {
     this.targetUserId = targetUserId;
+    await this.refreshTurnServers();
     await this.getLocalMedia(callType, true);
     const pc = this.createPeerConnection();
 
