@@ -51,12 +51,14 @@ export const CallModal: React.FC<CallModalProps> = ({
   useEffect(() => {
     const handleRemoteStream = (stream: MediaStream) => {
       setRemoteStreamAvailable(true);
-      if (remoteVideoRef.current && callType === 'video') {
+      if (callType === 'video' && remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream;
+        remoteVideoRef.current.muted = false;
         remoteVideoRef.current.play().catch(e => console.warn('Video play error:', e));
       }
-      if (remoteAudioRef.current) {
+      if (callType === 'audio' && remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = stream;
+        remoteAudioRef.current.muted = false;
         remoteAudioRef.current.play().catch(e => console.warn('Audio play error:', e));
       }
     };
