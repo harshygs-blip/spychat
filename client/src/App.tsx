@@ -194,7 +194,7 @@ export const App: React.FC = () => {
         const me = await AuthService.getMe();
         if (me) {
           setCurrentUser(me);
-          if (me.app_pin) {
+          if (me.app_pin && sessionStorage.getItem('spychat_unlocked') !== 'true') {
             setIsLocked(true);
           }
           if (!localStorage.getItem('spychat_permissions_prompted')) {
@@ -710,7 +710,10 @@ export const App: React.FC = () => {
       {isLocked && currentUser.app_pin && (
         <AppLockModal
           correctPin={currentUser.app_pin}
-          onUnlock={() => setIsLocked(false)}
+          onUnlock={() => {
+            sessionStorage.setItem('spychat_unlocked', 'true');
+            setIsLocked(false);
+          }}
         />
       )}
 
