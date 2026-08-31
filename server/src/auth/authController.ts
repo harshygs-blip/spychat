@@ -3,38 +3,42 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { db, User, Session } from '../database/db';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../security/jwt';
-import { BruteForceGuard } from '../security/bruteForceGuard';
 import { AuthenticatedRequest } from '../middleware/auth';
 
+// --- SIGN UP CONTROLLER ---
 export async function signup(req: Request, res: Response): Promise<void> {
   try {
-    const { email, password, username, displayName, publicKey } = req.body;
+    const rawEmail = (req.body.email || '').toString().trim().toLowerCase();
+    const rawPassword = (req.body.password || '').toString();
+    const rawUsername = (req.body.username || '').toString().trim().replace(/^@+/, '').toLowerCase();
+    const rawDisplayName = (req.body.displayName || req.body.display_name || '').toString().trim();
+    const publicKey = (req.body.publicKey || req.body.public_key || '').toString();
 
-    if (!email || !password) {
+    // 1. Validation
+    if (!rawEmail || !rawPassword) {
       res.status(400).json({ error: 'Email and password are required' });
       return;
     }
 
-    if (password.length < 6) {
+    if (rawPassword.length < 6) {
       res.status(400).json({ error: 'Password must be at least 6 characters long' });
       return;
     }
 
-    const cleanEmail = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
+    if (!emailRegex.test(rawEmail)) {
       res.status(400).json({ error: 'Please enter a valid email address' });
       return;
     }
 
-    const existingEmail = db.findUserByEmail(cleanEmail);
+    const existingEmail = db.findUserByEmail(rawEmail);
     if (existingEmail) {
-      res.status(409).json({ error: 'This email is already registered. 1 email can only be used for 1 account.' });
+      res.status(409).json({ error: 'This email is already registered. Please login.' });
       return;
     }
 
-    // Strict Unique Username Validation
-    let chosenUsername = username ? username.trim().replace(/^@/, '').toLowerCase() : '';
+    // Username validation
+    let chosenUsername = rawUsername;
     if (!chosenUsername) {
       res.status(400).json({ error: 'Username is required' });
       return;
@@ -52,23 +56,23 @@ export async function signup(req: Request, res: Response): Promise<void> {
 
     const existingUser = db.findUserByUsername(chosenUsername);
     if (existingUser) {
-      res.status(409).json({ error: `Username @${chosenUsername} is already taken. Please choose a different username.` });
+      res.status(409).json({ error: `Username @${chosenUsername} is already taken. Please choose another username.` });
       return;
     }
 
-    // 256-bit Salt + 12-round Key Derivation
-    const salt = await bcrypt.genSalt(12);
-    const passwordHash = await bcrypt.hash(password, salt);
+    // 2. Hash Password (bcrypt salt 10 rounds)
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(rawPassword, salt);
     const userId = 'usr_' + uuidv4().replace(/-/g, '').substring(0, 16);
 
     const newUser: User = {
       id: userId,
-      email: email.toLowerCase(),
+      email: rawEmail,
       password_hash: passwordHash,
       username: chosenUsername,
-      display_name: displayName || chosenUsername,
+      display_name: rawDisplayName || chosenUsername,
       avatar_id: `avatar_${Math.floor(Math.random() * 8) + 1}`,
-      public_key: publicKey || '',
+      public_key: publicKey,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       last_seen: new Date().toISOString(),
@@ -83,7 +87,7 @@ export async function signup(req: Request, res: Response): Promise<void> {
         greeting_message: '👋 Welcome to my secure channel! How can I assist you today?',
         greeting_type: 'text',
         away_enabled: true,
-        away_message: '🌙 I am currently offline. Your encrypted message has been received and I will get back to you shortly.',
+        away_message: '🌙 I am currently offline. Your encrypted message has been received.',
         away_type: 'text',
         auto_replies_enabled: true,
         auto_reply_rules: [
@@ -93,7 +97,7 @@ export async function signup(req: Request, res: Response): Promise<void> {
           { trigger: 'hello', response: 'Hey there! Welcome to my chat.', message_type: 'text' }
         ],
         quick_replies: [
-          { trigger: '/price', response: '💰 Our packages start from $49/mo. Contact for custom inquiries.', message_type: 'text' },
+          { trigger: '/price', response: '💰 Our packages start from $49/mo.', message_type: 'text' },
           { trigger: '/thanks', response: '🙏 Thank you for connecting with us! Have a great day.', message_type: 'text' }
         ]
       }
@@ -113,9 +117,8 @@ export async function signup(req: Request, res: Response): Promise<void> {
     };
     db.createSession(session);
 
-    // Return safe user profile (never expose email or password to others)
     res.status(201).json({
-      message: 'Account created successfully (AES-256 / SHA-256 E2EE Enabled)',
+      message: 'Account created successfully',
       user: {
         id: newUser.id,
         username: newUser.username,
@@ -133,11 +136,11 @@ export async function signup(req: Request, res: Response): Promise<void> {
   }
 }
 
+// --- LOGIN CONTROLLER ---
 export async function login(req: Request, res: Response): Promise<void> {
   try {
     const rawIdentifier = (req.body.email || req.body.username || req.body.identifier || '').toString().trim();
     const rawPassword = (req.body.password || '').toString();
-    const clientIp = req.ip || req.socket.remoteAddress || 'unknown_ip';
 
     if (!rawIdentifier || !rawPassword) {
       res.status(400).json({ error: 'Email or Username and password are required' });
@@ -145,58 +148,37 @@ export async function login(req: Request, res: Response): Promise<void> {
     }
 
     const cleanIdentifier = rawIdentifier.toLowerCase();
-    const cleanUsername = cleanIdentifier.replace(/^@/, '');
+    const cleanUsername = cleanIdentifier.replace(/^@+/, '');
 
-    // 1. Anti-Brute Force Lockout Check (IP + Identifier)
-    const idLock = BruteForceGuard.checkLockout(cleanIdentifier);
-    const ipLock = BruteForceGuard.checkLockout(clientIp);
-
-    if (idLock.isLocked || ipLock.isLocked) {
-      const waitSeconds = Math.max(idLock.remainingSeconds, ipLock.remainingSeconds);
-      res.status(429).json({
-        error: `🛡️ Anti-Bruteforce Lock Activated: Too many failed attempts. Please wait ${waitSeconds}s before retrying.`,
-        locked: true,
-        remainingSeconds: waitSeconds
-      });
-      return;
-    }
-
-    // 2. Lookup by Email OR Username (case-insensitive & trimmed)
+    // 1. Search user by Email OR Username
     const user = db.findUserByEmail(cleanIdentifier) || db.findUserByUsername(cleanUsername);
     if (!user) {
-      console.warn(`[Login Attempt] User not found for identifier: "${cleanIdentifier}" / "${cleanUsername}"`);
-      const failInfo = BruteForceGuard.recordFailure(cleanIdentifier);
-      BruteForceGuard.recordFailure(clientIp);
+      console.warn(`[Login] No user found matching identifier: "${cleanIdentifier}" / "${cleanUsername}"`);
       res.status(401).json({
         error: 'No account found with this email or username. Please check spelling or Sign Up.'
       });
       return;
     }
 
+    // 2. Verify Password
     const isMatch = await bcrypt.compare(rawPassword, user.password_hash);
     if (!isMatch) {
-      console.warn(`[Login Attempt] Password mismatch for user: ${user.username} (${user.email})`);
-      const failInfo = BruteForceGuard.recordFailure(cleanIdentifier);
-      BruteForceGuard.recordFailure(clientIp);
+      console.warn(`[Login] Password mismatch for user: @${user.username} (${user.email})`);
       res.status(401).json({
         error: 'Incorrect password. Please check your password and try again.'
       });
       return;
     }
 
-    // Login Successful - Reset Failure Tracking
-    BruteForceGuard.recordSuccess(cleanIdentifier);
-    BruteForceGuard.recordSuccess(cleanUsername);
-    BruteForceGuard.recordSuccess(user.email);
-    BruteForceGuard.recordSuccess(clientIp);
-
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
 
     db.updateUser(user.id, { last_seen: new Date().toISOString() });
 
+    console.log(`[Login Success] User logged in: @${user.username} (ID: ${user.id})`);
+
     res.json({
-      message: 'Login successful (256-Bit Protected)',
+      message: 'Login successful',
       user: {
         id: user.id,
         username: user.username,
@@ -214,6 +196,7 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 }
 
+// --- REFRESH TOKEN ---
 export async function refresh(req: Request, res: Response): Promise<void> {
   try {
     const { refreshToken } = req.body;
@@ -242,6 +225,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
   }
 }
 
+// --- GET ME ---
 export function getMe(req: AuthenticatedRequest, res: Response): void {
   const user = db.findUserById(req.userId!);
   if (!user) {
@@ -257,11 +241,14 @@ export function getMe(req: AuthenticatedRequest, res: Response): void {
       avatar_id: user.avatar_id,
       email: user.email,
       privacy: user.privacy,
+      app_pin: user.app_pin,
+      business_automation: user.business_automation,
       created_at: user.created_at
     }
   });
 }
 
+// --- LOGOUT ---
 export function logout(req: AuthenticatedRequest, res: Response): void {
   if (req.userId) {
     db.revokeSession(req.userId);

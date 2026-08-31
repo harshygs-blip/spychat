@@ -2,18 +2,19 @@ import { Response } from 'express';
 import { db } from '../database/db';
 import { AuthenticatedRequest } from '../middleware/auth';
 
+// --- SEARCH USERS & USER DIRECTORY ---
 export function searchUsers(req: AuthenticatedRequest, res: Response): void {
-  const query = (req.query.q as string || '').trim();
-  if (!query) {
-    const all = db.getAllUsersExcept(req.userId!);
-    res.json({ users: all });
-    return;
+  try {
+    const rawQuery = (req.query.q as string || '').trim();
+    const results = db.searchUsers(rawQuery, req.userId);
+    res.json({ users: results });
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'Failed to search users', users: [] });
   }
-
-  const results = db.searchUsers(query, req.userId!);
-  res.json({ users: results });
 }
 
+// --- GET USER PUBLIC PROFILE ---
 export function getUserPublicProfile(req: AuthenticatedRequest, res: Response): void {
   const targetId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const user = db.findUserById(targetId);
@@ -23,7 +24,6 @@ export function getUserPublicProfile(req: AuthenticatedRequest, res: Response): 
     return;
   }
 
-  // Never return email, password_hash, or IP!
   res.json({
     user: {
       id: user.id,
@@ -37,12 +37,14 @@ export function getUserPublicProfile(req: AuthenticatedRequest, res: Response): 
   });
 }
 
+// --- UPDATE PROFILE ---
 export function updateProfile(req: AuthenticatedRequest, res: Response): void {
   const body = req.body || {};
   const updates: any = {};
+
   const username = body.username;
   if (username) {
-    const cleanUsername = username.trim().replace(/^@/, '').toLowerCase();
+    const cleanUsername = username.trim().replace(/^@+/, '').toLowerCase();
     if (cleanUsername.length < 3 || cleanUsername.length > 25) {
       res.status(400).json({ error: 'Username must be between 3 and 25 characters' });
       return;

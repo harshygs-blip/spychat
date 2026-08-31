@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Eye, EyeOff, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Shield, Eye, EyeOff, Sparkles, UserPlus, LogIn, ArrowRight } from 'lucide-react';
 import { AuthService } from '../../services/auth';
+import { socketService } from '../../services/socket';
 import { User } from '../../types';
 
 interface AuthModalProps {
@@ -9,10 +10,11 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,14 +26,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
     try {
       if (isLogin) {
-        const res = await AuthService.login(email, password);
+        const cleanIdentifier = emailOrUsername.trim();
+        if (!cleanIdentifier || !password) {
+          throw new Error('Please enter your email/username and password');
+        }
+        const res = await AuthService.login(cleanIdentifier, password);
+        socketService.connect();
         onSuccess(res.user);
       } else {
-        const res = await AuthService.signup(email, password, displayName, username);
+        const cleanEmail = signupEmail.trim();
+        const cleanUsername = username.trim().replace(/^@+/, '');
+        if (!cleanEmail || !password || !cleanUsername) {
+          throw new Error('All fields are required');
+        }
+        const res = await AuthService.signup(cleanEmail, password, displayName.trim() || cleanUsername, cleanUsername);
+        socketService.connect();
         onSuccess(res.user);
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      console.error('Auth error:', err);
+      setError(err.message || 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -51,17 +65,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }}>
       <div className="glass" style={{
         width: '100%',
-        maxWidth: '420px',
-        padding: '30px 24px',
+        maxWidth: '430px',
+        padding: '32px 24px',
         borderRadius: '24px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9)',
-        border: '1px solid rgba(6, 182, 212, 0.2)'
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(6, 182, 212, 0.15)',
+        border: '1px solid rgba(6, 182, 212, 0.25)'
       }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <div style={{
-            width: '76px',
-            height: '76px',
+            width: '72px',
+            height: '72px',
             borderRadius: '20px',
             overflow: 'hidden',
             display: 'inline-flex',
@@ -76,38 +90,81 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             SPYCHAT
           </h2>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            {isLogin ? 'Enter your private space' : 'Create an anonymous, encrypted profile'}
+            {isLogin ? 'Enter your zero-knowledge private space' : 'Create an anonymous, encrypted profile'}
           </p>
         </div>
 
-        {/* Privacy Highlight Badge */}
+        {/* Tab Switcher */}
         <div style={{
-          background: 'rgba(6, 182, 212, 0.08)',
-          border: '1px solid rgba(6, 182, 212, 0.2)',
-          borderRadius: '12px',
-          padding: '10px 14px',
-          marginBottom: '20px',
           display: 'flex',
-          alignItems: 'center',
-          gap: '10px'
+          background: 'rgba(0, 0, 0, 0.4)',
+          borderRadius: '14px',
+          padding: '4px',
+          marginBottom: '20px',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
-          <Sparkles size={18} color="var(--accent-cyan)" />
-          <span style={{ fontSize: '12px', color: '#cbd5e1' }}>
-            No Phone Number • No OTP • E2EE Protected
-          </span>
+          <button
+            type="button"
+            onClick={() => { setIsLogin(true); setError(''); }}
+            style={{
+              flex: 1,
+              padding: '9px',
+              borderRadius: '10px',
+              border: 'none',
+              background: isLogin ? 'var(--accent-gradient)' : 'transparent',
+              color: isLogin ? '#040810' : 'var(--text-muted)',
+              fontWeight: '700',
+              fontSize: '13.5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <LogIn size={15} />
+            <span>Login</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setIsLogin(false); setError(''); }}
+            style={{
+              flex: 1,
+              padding: '9px',
+              borderRadius: '10px',
+              border: 'none',
+              background: !isLogin ? 'var(--accent-gradient)' : 'transparent',
+              color: !isLogin ? '#040810' : 'var(--text-muted)',
+              fontWeight: '700',
+              fontSize: '13.5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <UserPlus size={15} />
+            <span>Sign Up</span>
+          </button>
         </div>
 
-        {/* Error Notification */}
+        {/* Error Banner */}
         {error && (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '10px',
-            padding: '10px',
-            color: '#f87171',
+            background: 'rgba(239, 68, 68, 0.18)',
+            border: '1.5px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            color: '#fca5a5',
             fontSize: '13px',
-            marginBottom: '16px',
-            textAlign: 'center'
+            fontWeight: '600',
+            marginBottom: '18px',
+            textAlign: 'center',
+            lineHeight: '1.4'
           }}>
             {error}
           </div>
@@ -115,24 +172,68 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {!isLogin && (
+          {isLogin ? (
+            /* --- LOGIN FIELDS --- */
             <>
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Display Name
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Email or @Username
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Agent 007"
+                  required
+                  autoFocus
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="e.g. user@gmail.com or mrharsh"
                   className="spychat-input"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  value={emailOrUsername}
+                  onChange={(e) => setEmailOrUsername(e.target.value)}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Public Tag (Username)
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Enter password"
+                    className="spychat-input"
+                    style={{ paddingRight: '44px' }}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* --- SIGN UP FIELDS --- */
+            <>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Choose Unique Username (Public Tag)
                 </label>
                 <div style={{ position: 'relative' }}>
                   <span style={{
@@ -141,100 +242,115 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     top: '50%',
                     transform: 'translateY(-50%)',
                     color: 'var(--accent-cyan)',
-                    fontWeight: '700'
+                    fontWeight: '800'
                   }}>@</span>
                   <input
                     type="text"
-                    placeholder="shadow_fox"
+                    required
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder="mrharsh"
                     className="spychat-input"
-                    style={{ paddingLeft: '30px' }}
+                    style={{ paddingLeft: '32px' }}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                   />
                 </div>
               </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Display Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Harsh"
+                  className="spychat-input"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Private Email (1 Account per Email)
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="harsh@gmail.com"
+                  className="spychat-input"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  Password (Min 6 Characters)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Create password"
+                    className="spychat-input"
+                    style={{ paddingRight: '44px' }}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
             </>
           )}
 
-          <div>
-            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              {isLogin ? 'Email or @Username' : 'Private Email (Never shared publicly)'}
-            </label>
-            <input
-              type={isLogin ? 'text' : 'email'}
-              required
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder={isLogin ? 'user@example.com or @username' : 'user@example.com'}
-              className="spychat-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              Password
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                placeholder="••••••••"
-                className="spychat-input"
-                style={{ paddingRight: '42px' }}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
             className="btn-primary"
-            style={{ marginTop: '10px', height: '46px' }}
+            style={{
+              width: '100%',
+              padding: '13px',
+              fontSize: '15px',
+              fontWeight: '800',
+              marginTop: '8px',
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
           >
-            {loading ? 'Securing...' : (isLogin ? 'Sign In' : 'Create Encrypted Account')}
+            {loading ? (
+              <span>Authenticating...</span>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                {isLogin ? 'Login to SPYCHAT' : 'Create Account'}
+                <ArrowRight size={17} />
+              </span>
+            )}
           </button>
         </form>
-
-        {/* Toggle Login / Signup */}
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <button
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setError('');
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--accent-cyan)',
-              fontSize: '13px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            {isLogin ? "Don't have an account? Create one" : 'Already registered? Sign In'}
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, MessageSquare, Phone, Video, ShieldAlert, Sparkles, UserPlus } from 'lucide-react';
+import { Search, X, MessageSquare, Phone, Video, ShieldAlert, Sparkles, Users } from 'lucide-react';
 import { AuthService } from '../../services/auth';
 import { User } from '../../types';
 
@@ -20,7 +20,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
     let isCurrent = true;
     const cleanQuery = query.replace(/^@+/, '').trim();
 
-    const fetchResults = async () => {
+    const fetchUsers = async () => {
       setLoading(true);
       try {
         const users = await AuthService.searchUsers(cleanQuery);
@@ -35,8 +35,8 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
     };
 
     const timer = setTimeout(() => {
-      fetchResults();
-    }, 60);
+      fetchUsers();
+    }, 50);
 
     return () => {
       isCurrent = false;
@@ -44,30 +44,27 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
     };
   }, [query]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
-
   return (
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(4, 8, 18, 0.9)',
-      backdropFilter: 'blur(16px)',
+      background: 'rgba(4, 8, 18, 0.94)',
+      backdropFilter: 'blur(20px)',
       display: 'flex',
       flexDirection: 'column',
-      zIndex: 50
+      zIndex: 100,
+      animation: 'slideDownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
-      {/* Top Search Bar */}
+      {/* Top Search Header */}
       <div className="glass" style={{
-        padding: '16px',
+        padding: '14px 16px',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
         borderBottom: '1px solid var(--border-color)'
       }}>
-        <form onSubmit={handleSearch} style={{ flex: 1, position: 'relative' }}>
-          <Search size={18} color="var(--text-muted)" style={{
+        <div style={{ flex: 1, position: 'relative' }}>
+          <Search size={18} color="var(--accent-cyan)" style={{
             position: 'absolute',
             left: '12px',
             top: '50%',
@@ -76,151 +73,191 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
           <input
             type="text"
             autoFocus
-            placeholder="Search by @tag or username..."
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="Search by username or display name..."
             className="spychat-input"
-            style={{ paddingLeft: '38px' }}
+            style={{ paddingLeft: '38px', paddingRight: query ? '36px' : '14px', width: '100%' }}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-        </form>
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '4px'
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
 
         <button
           onClick={onClose}
           style={{
             background: 'rgba(255, 255, 255, 0.08)',
-            border: 'none',
-            borderRadius: '50%',
-            width: '36px',
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-primary)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '12px',
+            padding: '8px 14px',
+            color: '#cbd5e1',
+            fontSize: '13px',
+            fontWeight: '700',
             cursor: 'pointer'
           }}
         >
-          <X size={20} />
+          Cancel
         </button>
       </div>
 
-      {/* Results List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-            Searching encrypted registry...
+      {/* Directory / Results Container */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        {loading && results.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+            Searching encrypted directory...
           </div>
         ) : results.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <>
+            <div style={{
+              fontSize: '11.5px',
+              fontWeight: '800',
+              color: 'var(--accent-cyan)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <Users size={14} />
+              <span>{query.trim() ? `Matching Users (${results.length})` : `All Users Directory (${results.length})`}</span>
+            </div>
+
             {results.map((user) => (
               <div
                 key={user.id}
+                onClick={() => onSelectUser(user, 'chat')}
                 className="glass"
                 style={{
-                  padding: '14px',
+                  padding: '12px 14px',
                   borderRadius: '16px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  transition: 'all 0.15s ease'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* User Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
                   <div style={{
                     width: '46px',
                     height: '46px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                    border: '1px solid var(--accent-cyan)',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontWeight: '700',
-                    color: 'var(--accent-cyan)'
+                    fontWeight: '800',
+                    fontSize: '16px',
+                    color: '#000',
+                    boxShadow: '0 0 15px rgba(6, 182, 212, 0.3)',
+                    flexShrink: 0
                   }}>
-                    {user.display_name.substring(0, 2).toUpperCase()}
+                    {(user.display_name || user.username || 'U').substring(0, 2).toUpperCase()}
                   </div>
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '15px' }}>{user.display_name}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--accent-cyan)', fontFamily: 'monospace' }}>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: '800', fontSize: '15px', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user.display_name || user.username}
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--accent-cyan)', fontWeight: '600', marginTop: '1px' }}>
                       @{user.username}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                {/* Direct Action Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => onSelectUser(user, 'chat')}
-                    title="Send Encrypted Message"
+                    title="Send Message"
                     style={{
                       background: 'rgba(6, 182, 212, 0.15)',
-                      border: '1px solid rgba(6, 182, 212, 0.3)',
+                      border: '1px solid rgba(6, 182, 212, 0.35)',
                       color: 'var(--accent-cyan)',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer'
                     }}
                   >
-                    <MessageSquare size={16} />
+                    <MessageSquare size={17} />
                   </button>
 
                   <button
                     onClick={() => onSelectUser(user, 'audio')}
-                    title="Start Voice Call"
+                    title="Audio Call"
                     style={{
                       background: 'rgba(16, 185, 129, 0.15)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
                       color: '#10b981',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer'
                     }}
                   >
-                    <Phone size={16} />
+                    <Phone size={17} />
                   </button>
 
                   <button
                     onClick={() => onSelectUser(user, 'video')}
-                    title="Start Video Call"
+                    title="Video Call"
                     style={{
                       background: 'rgba(139, 92, 246, 0.15)',
-                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                      border: '1px solid rgba(139, 92, 246, 0.35)',
                       color: '#a855f7',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer'
                     }}
                   >
-                    <Video size={16} />
+                    <Video size={17} />
                   </button>
                 </div>
               </div>
             ))}
-          </div>
-        ) : query.trim().length > 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <ShieldAlert size={36} color="var(--text-muted)" />
-            <p style={{ fontSize: '15px' }}>No user found matching "@{query.replace(/^@+/, '')}"</p>
-            <p style={{ fontSize: '12px' }}>Make sure the @tag is spelled accurately.</p>
-          </div>
+          </>
         ) : (
           <div style={{
             textAlign: 'center',
@@ -231,12 +268,12 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
             alignItems: 'center',
             gap: '12px'
           }}>
-            <Search size={36} color="var(--accent-cyan)" opacity={0.6} />
-            <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-              Search anyone by their private public tag
+            <ShieldAlert size={40} color="var(--accent-cyan)" opacity={0.7} />
+            <p style={{ fontSize: '15px', color: '#cbd5e1', fontWeight: '600' }}>
+              No user found matching "{query.replace(/^@+/, '')}"
             </p>
-            <p style={{ fontSize: '12px' }}>
-              Example: search <code>@shadow</code> or <code>@spy</code> to start talking.
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              Check the spelling or search with another username.
             </p>
           </div>
         )}
