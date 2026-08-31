@@ -88,8 +88,8 @@ export class WebRTCService {
       },
       video: this.isAudioOnly ? false : {
         facingMode: this.isFrontCamera ? 'user' : 'environment',
-        width: { ideal: 1280, max: 1920 },
-        height: { ideal: 720, max: 1080 }
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
       }
     };
 
@@ -300,11 +300,12 @@ export class WebRTCService {
   // Create RTCPeerConnection with STUN & TURN Relay
   private createPeerConnection(): RTCPeerConnection {
     if (this.peerConnection) {
-      this.peerConnection.close();
+      try {
+        this.peerConnection.close();
+      } catch {}
       this.peerConnection = null;
     }
 
-    this.pendingCandidates = [];
     this.peerConnection = new RTCPeerConnection(ICE_SERVERS);
     this.remoteStream = new MediaStream();
 
@@ -313,6 +314,7 @@ export class WebRTCService {
       this.localStream.getTracks().forEach(track => {
         try {
           this.peerConnection!.addTrack(track, this.localStream!);
+          console.log(`[WebRTC] Added local ${track.kind} track to PeerConnection`);
         } catch (e) {
           console.warn('[WebRTC] addTrack error:', e);
         }
@@ -338,6 +340,7 @@ export class WebRTCService {
     // Handle remote track arrivals (Audio & Video)
     this.peerConnection.ontrack = (event) => {
       console.log('[WebRTC ontrack] Received remote track:', event.track.kind, event.track.id);
+      event.track.enabled = true;
       if (event.streams && event.streams[0]) {
         this.remoteStream = event.streams[0];
       } else {
@@ -355,6 +358,7 @@ export class WebRTCService {
     // Send ICE candidates to peer via socket
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.targetUserId) {
+        console.log('[WebRTC onicecandidate] Emitting candidate to peer:', this.targetUserId);
         socketService.emit('ice_candidate', {
           targetUserId: this.targetUserId,
           candidate: event.candidate
@@ -363,10 +367,15 @@ export class WebRTCService {
     };
 
     this.peerConnection.onconnectionstatechange = () => {
-      console.log('[WebRTC Connection State]:', this.peerConnection?.connectionState);
-      if (this.onConnectionStateCallback && this.peerConnection) {
-        this.onConnectionStateCallback(this.peerConnection.connectionState);
+      const connState = this.peerConnection?.connectionState;
+      console.log('[WebRTC Connection State Changed]:', connState);
+      if (this.onConnectionStateCallback && connState) {
+        this.onConnectionStateCallback(connState);
       }
+    };
+
+    this.peerConnection.oniceconnectionstatechange = () => {
+      console.log('[WebRTC ICE State]:', this.peerConnection?.iceConnectionState);
     };
 
     return this.peerConnection;
@@ -375,6 +384,7 @@ export class WebRTCService {
   // Flush buffered ICE candidates after remote description is set
   private async processPendingCandidates() {
     if (!this.peerConnection || !this.peerConnection.remoteDescription) return;
+    console.log(`[WebRTC] Draining ${this.pendingCandidates.length} pending ICE candidates`);
     while (this.pendingCandidates.length > 0) {
       const candidate = this.pendingCandidates.shift();
       if (candidate) {
@@ -411,7 +421,10 @@ export class WebRTCService {
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
     await this.processPendingCandidates();
 
-    const answer = await pc.createAnswer();
+    const answer = await pc.createAnswer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: callType === 'video'
+    });
     await pc.setLocalDescription(answer);
 
     return answer;

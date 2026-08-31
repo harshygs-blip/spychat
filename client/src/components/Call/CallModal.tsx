@@ -47,20 +47,23 @@ export const CallModal: React.FC<CallModalProps> = ({
     };
   }, [state]);
 
-  // Hook up WebRTC Streams
+  const [connectionStatus, setConnectionStatus] = useState<string>('Connecting...');
+
+  // Hook up WebRTC Streams & Connection State
   useEffect(() => {
     const handleRemoteStream = (stream: MediaStream) => {
-      console.log('[CallModal] Attaching remote stream tracks:', stream.getTracks().map(t => `${t.kind}:${t.enabled}:${t.readyState}`));
-      setRemoteStreamAvailable(true);
+      const tracks = stream.getTracks();
+      console.log('[CallModal] Attaching remote stream tracks:', tracks.map(t => `${t.kind}:${t.enabled}:${t.readyState}`));
+      setRemoteStreamAvailable(tracks.length > 0);
 
-      // Always feed audio tracks to dedicated remote audio element
+      // Always feed audio to remoteAudioRef
       if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = stream;
         remoteAudioRef.current.muted = false;
         remoteAudioRef.current.play().catch(e => console.warn('[CallModal] Audio element play error:', e));
       }
 
-      // Feed video tracks to video player
+      // Feed to remoteVideoRef if video call
       if (remoteVideoRef.current && callType === 'video') {
         remoteVideoRef.current.srcObject = stream;
         remoteVideoRef.current.muted = false;
@@ -68,7 +71,16 @@ export const CallModal: React.FC<CallModalProps> = ({
       }
     };
 
+    const handleConnectionState = (st: RTCPeerConnectionState) => {
+      console.log('[CallModal] Live Connection State:', st);
+      if (st === 'connected') setConnectionStatus('Connected (P2P E2EE)');
+      else if (st === 'connecting') setConnectionStatus('Connecting P2P Route...');
+      else if (st === 'failed') setConnectionStatus('Reconnecting via Relay...');
+      else if (st === 'disconnected') setConnectionStatus('Disconnected');
+    };
+
     webrtcService.onRemoteStreamCallback = handleRemoteStream;
+    webrtcService.onConnectionStateCallback = handleConnectionState;
 
     // If remote stream is already connected
     const existingRemote = webrtcService.getRemoteStream();
@@ -89,6 +101,7 @@ export const CallModal: React.FC<CallModalProps> = ({
 
     return () => {
       webrtcService.onRemoteStreamCallback = null;
+      webrtcService.onConnectionStateCallback = null;
     };
   }, [callType]);
 
@@ -268,6 +281,17 @@ export const CallModal: React.FC<CallModalProps> = ({
             <>
               <Wifi size={14} />
               <span>{formatDuration(duration)}</span>
+              <span style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                background: connectionStatus.includes('Connected') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(6, 182, 212, 0.2)',
+                color: connectionStatus.includes('Connected') ? '#34d399' : 'var(--accent-cyan)',
+                fontWeight: '700',
+                border: '1px solid currentColor'
+              }}>
+                {connectionStatus}
+              </span>
             </>
           ) : (
             <span className="animate-pulse-glow" style={{ padding: '2px 8px', borderRadius: '8px' }}>
