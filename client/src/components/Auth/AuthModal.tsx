@@ -158,12 +158,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
           <div>
             <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-              Private Email (Never shared publicly)
+              {isLogin ? 'Email or @Username' : 'Private Email (Never shared publicly)'}
             </label>
             <input
-              type="email"
+              type={isLogin ? 'text' : 'email'}
               required
-              placeholder="user@example.com"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={isLogin ? 'user@example.com or @username' : 'user@example.com'}
               className="spychat-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

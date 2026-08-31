@@ -135,20 +135,24 @@ export async function signup(req: Request, res: Response): Promise<void> {
 
 export async function login(req: Request, res: Response): Promise<void> {
   try {
-    const { email, password } = req.body;
+    const rawIdentifier = (req.body.email || req.body.username || req.body.identifier || '').toString().trim();
+    const rawPassword = (req.body.password || '').toString();
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown_ip';
 
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
+    if (!rawIdentifier || !rawPassword) {
+      res.status(400).json({ error: 'Email or Username and password are required' });
       return;
     }
 
-    // 1. Anti-Brute Force Lockout Check (IP + Email)
-    const emailLock = BruteForceGuard.checkLockout(email);
+    const cleanIdentifier = rawIdentifier.toLowerCase();
+    const cleanUsername = cleanIdentifier.replace(/^@/, '');
+
+    // 1. Anti-Brute Force Lockout Check (IP + Identifier)
+    const idLock = BruteForceGuard.checkLockout(cleanIdentifier);
     const ipLock = BruteForceGuard.checkLockout(clientIp);
 
-    if (emailLock.isLocked || ipLock.isLocked) {
-      const waitSeconds = Math.max(emailLock.remainingSeconds, ipLock.remainingSeconds);
+    if (idLock.isLocked || ipLock.isLocked) {
+      const waitSeconds = Math.max(idLock.remainingSeconds, ipLock.remainingSeconds);
       res.status(429).json({
         error: `🛡️ Anti-Bruteforce Lock Activated: Too many failed attempts. Please wait ${waitSeconds}s before retrying.`,
         locked: true,
@@ -157,32 +161,35 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const user = db.findUserByEmail(email);
+    // 2. Lookup by Email OR Username
+    const user = db.findUserByEmail(cleanIdentifier) || db.findUserByUsername(cleanUsername);
     if (!user) {
-      const failInfo = BruteForceGuard.recordFailure(email);
+      const failInfo = BruteForceGuard.recordFailure(cleanIdentifier);
       BruteForceGuard.recordFailure(clientIp);
       res.status(401).json({
         error: failInfo.locked 
           ? '🛡️ Maximum login attempts exceeded. Account locked for 15 minutes.' 
-          : `Invalid email or password. (${failInfo.remainingAttempts} attempts remaining before 15m lockout)`
+          : `Invalid email/username or password. (${failInfo.remainingAttempts} attempts remaining before 15m lockout)`
       });
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    const isMatch = await bcrypt.compare(rawPassword, user.password_hash);
     if (!isMatch) {
-      const failInfo = BruteForceGuard.recordFailure(email);
+      const failInfo = BruteForceGuard.recordFailure(cleanIdentifier);
       BruteForceGuard.recordFailure(clientIp);
       res.status(401).json({
         error: failInfo.locked 
           ? '🛡️ Maximum login attempts exceeded. Account locked for 15 minutes.' 
-          : `Invalid email or password. (${failInfo.remainingAttempts} attempts remaining before 15m lockout)`
+          : `Invalid email/username or password. (${failInfo.remainingAttempts} attempts remaining before 15m lockout)`
       });
       return;
     }
 
     // Login Successful - Reset Failure Tracking
-    BruteForceGuard.recordSuccess(email);
+    BruteForceGuard.recordSuccess(cleanIdentifier);
+    BruteForceGuard.recordSuccess(cleanUsername);
+    BruteForceGuard.recordSuccess(user.email);
     BruteForceGuard.recordSuccess(clientIp);
 
     const accessToken = generateAccessToken(user.id);
