@@ -219,8 +219,12 @@ class Database {
     ];
 
     for (const seed of seedUsers) {
-      const exists = this.data.users.find(u => u.email.toLowerCase() === seed.email!.toLowerCase() || u.username.toLowerCase() === seed.username!.toLowerCase());
-      if (!exists) {
+      const idx = this.data.users.findIndex(u => 
+        u.id === seed.id || 
+        u.email.toLowerCase() === seed.email!.toLowerCase() || 
+        u.username.toLowerCase() === seed.username!.toLowerCase()
+      );
+      if (idx === -1) {
         this.data.users.push({
           id: seed.id!,
           email: seed.email!,
@@ -239,8 +243,11 @@ class Database {
           }
         });
       } else {
-        // Ensure valid password hash for password "123456"
-        exists.password_hash = defaultHash;
+        // Enforce valid username, email, and password hash
+        this.data.users[idx].email = seed.email!;
+        this.data.users[idx].username = seed.username!;
+        this.data.users[idx].display_name = seed.display_name!;
+        this.data.users[idx].password_hash = defaultHash;
       }
     }
   }
