@@ -25,8 +25,6 @@ public class MainActivity extends BridgeActivity {
             settings.setJavaScriptCanOpenWindowsAutomatically(true);
             settings.setAllowFileAccess(true);
             settings.setDomStorageEnabled(true);
-            settings.setDatabaseEnabled(true);
-            settings.setGeolocationEnabled(true);
 
             // Grant WebRTC camera, microphone & Geolocation permissions inside Android WebView
             webView.setWebChromeClient(new WebChromeClient() {

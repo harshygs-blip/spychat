@@ -50,16 +50,21 @@ export const CallModal: React.FC<CallModalProps> = ({
   // Hook up WebRTC Streams
   useEffect(() => {
     const handleRemoteStream = (stream: MediaStream) => {
+      console.log('[CallModal] Attaching remote stream tracks:', stream.getTracks().map(t => `${t.kind}:${t.enabled}:${t.readyState}`));
       setRemoteStreamAvailable(true);
-      if (callType === 'video' && remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = stream;
-        remoteVideoRef.current.muted = false;
-        remoteVideoRef.current.play().catch(e => console.warn('Video play error:', e));
-      }
-      if (callType === 'audio' && remoteAudioRef.current) {
+
+      // Always feed audio tracks to dedicated remote audio element
+      if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = stream;
         remoteAudioRef.current.muted = false;
-        remoteAudioRef.current.play().catch(e => console.warn('Audio play error:', e));
+        remoteAudioRef.current.play().catch(e => console.warn('[CallModal] Audio element play error:', e));
+      }
+
+      // Feed video tracks to video player
+      if (remoteVideoRef.current && callType === 'video') {
+        remoteVideoRef.current.srcObject = stream;
+        remoteVideoRef.current.muted = false;
+        remoteVideoRef.current.play().catch(e => console.warn('[CallModal] Video element play error:', e));
       }
     };
 

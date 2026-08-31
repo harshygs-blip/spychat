@@ -9,6 +9,10 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: 'stun:stun4.l.google.com:19302' },
     { urls: 'stun:stun.cloudflare.com:3478' },
     { urls: 'stun:global.stun.twilio.com:3478' },
+    { urls: 'stun:stun.services.mozilla.com' },
+    { urls: 'stun:stun.nextcloud.com:443' },
+    { urls: 'stun:stun.voip.blackberry.com:3478' },
+    { urls: 'stun:stun.stunprotocol.org:3478' },
     {
       urls: 'turn:openrelay.metered.ca:80',
       username: 'openrelayproject',
@@ -25,7 +29,9 @@ const ICE_SERVERS: RTCConfiguration = {
       credential: 'openrelayproject'
     }
   ],
-  iceCandidatePoolSize: 10
+  iceCandidatePoolSize: 10,
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require'
 };
 
 export type VoiceEffectType = 'normal' | 'robot' | 'deep' | 'radio';
@@ -305,21 +311,43 @@ export class WebRTCService {
     // Attach local audio & video tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => {
-        this.peerConnection!.addTrack(track, this.localStream!);
+        try {
+          this.peerConnection!.addTrack(track, this.localStream!);
+        } catch (e) {
+          console.warn('[WebRTC] addTrack error:', e);
+        }
       });
     }
 
-    // Handle remote track arrivals
+    // Add bidirectional transceivers to guarantee audio/video negotiation
+    try {
+      const transceivers = this.peerConnection.getTransceivers();
+      const hasAudio = transceivers.some(t => t.sender.track?.kind === 'audio' || t.receiver.track?.kind === 'audio');
+      const hasVideo = transceivers.some(t => t.sender.track?.kind === 'video' || t.receiver.track?.kind === 'video');
+
+      if (!hasAudio) {
+        this.peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
+      }
+      if (!hasVideo && !this.isAudioOnly) {
+        this.peerConnection.addTransceiver('video', { direction: 'sendrecv' });
+      }
+    } catch (e) {
+      console.warn('[WebRTC] addTransceiver warning:', e);
+    }
+
+    // Handle remote track arrivals (Audio & Video)
     this.peerConnection.ontrack = (event) => {
-      console.log('[WebRTC ontrack] Received remote track:', event.track.kind);
+      console.log('[WebRTC ontrack] Received remote track:', event.track.kind, event.track.id);
       if (event.streams && event.streams[0]) {
         this.remoteStream = event.streams[0];
       } else {
         if (!this.remoteStream) this.remoteStream = new MediaStream();
-        this.remoteStream.addTrack(event.track);
+        if (!this.remoteStream.getTracks().some(t => t.id === event.track.id)) {
+          this.remoteStream.addTrack(event.track);
+        }
       }
 
-      if (this.onRemoteStreamCallback) {
+      if (this.onRemoteStreamCallback && this.remoteStream) {
         this.onRemoteStreamCallback(this.remoteStream);
       }
     };
