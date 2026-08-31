@@ -5,7 +5,8 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' }
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' }
   ]
 };
 
@@ -19,6 +20,7 @@ export class WebRTCService {
   private targetUserId: string | null = null;
   private isAudioOnly: boolean = false;
   private isFrontCamera: boolean = true;
+  private pendingCandidates: RTCIceCandidateInit[] = [];
 
   // Live Web Audio DSP Chain for Voice Changing
   private audioCtx: AudioContext | null = null;
@@ -29,7 +31,7 @@ export class WebRTCService {
   public onRemoteStreamCallback: ((stream: MediaStream) => void) | null = null;
   public onConnectionStateCallback: ((state: RTCPeerConnectionState) => void) | null = null;
 
-  // Initialize Ultra-HD Local Media (1080p60 Studio Camera + 48kHz Stereo Audio)
+  // Initialize Local Media (Camera/Mic)
   public async getLocalMedia(callType: 'audio' | 'video'): Promise<MediaStream> {
     this.isAudioOnly = callType === 'audio';
 
@@ -37,41 +39,34 @@ export class WebRTCService {
       this.stopLocalMedia();
     }
 
-    const ultraHdConstraints: MediaStreamConstraints = {
+    const constraints: MediaStreamConstraints = {
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: 2,
-        sampleRate: 48000
+        autoGainControl: true
       },
       video: this.isAudioOnly ? false : {
         facingMode: this.isFrontCamera ? 'user' : 'environment',
-        width: { ideal: 1920, max: 3840, min: 1280 },
-        height: { ideal: 1080, max: 2160, min: 720 },
-        frameRate: { ideal: 60, min: 30 }
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 }
       }
     };
 
     try {
-      this.rawAudioStream = await navigator.mediaDevices.getUserMedia(ultraHdConstraints);
+      this.rawAudioStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.localStream = this.rawAudioStream;
       return this.localStream;
     } catch (err) {
-      console.warn('[WebRTC] Ultra-HD 1080p requested, fallback to 720p HD:', err);
+      console.warn('[WebRTC] HD Camera failed, fallback to standard media:', err);
       try {
-        const fallbackConstraints: MediaStreamConstraints = {
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-          video: this.isAudioOnly ? false : {
-            facingMode: this.isFrontCamera ? 'user' : 'environment',
-            width: { ideal: 1280, min: 640 },
-            height: { ideal: 720, min: 480 }
-          }
-        };
-        this.rawAudioStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        this.rawAudioStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: this.isAudioOnly ? false : true
+        });
         this.localStream = this.rawAudioStream;
         return this.localStream;
-      } catch {
+      } catch (err2) {
+        console.warn('[WebRTC] Video capture failed, audio only fallback:', err2);
         this.rawAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         this.localStream = this.rawAudioStream;
         this.isAudioOnly = true;
@@ -185,37 +180,38 @@ export class WebRTCService {
     const senders = this.peerConnection.getSenders();
     const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
     if (audioSender) {
-      audioSender.replaceTrack(newTrack);
+      audioSender.replaceTrack(newTrack).catch(e => console.warn('Replace track error:', e));
     }
   }
 
-  // Create RTCPeerConnection with Ultra-HD 4Mbps Tuning
+  // Create RTCPeerConnection
   private createPeerConnection(): RTCPeerConnection {
     if (this.peerConnection) {
       this.peerConnection.close();
+      this.peerConnection = null;
     }
 
+    this.pendingCandidates = [];
     this.peerConnection = new RTCPeerConnection(ICE_SERVERS);
     this.remoteStream = new MediaStream();
 
-    // Attach local tracks
+    // Attach local audio & video tracks
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => {
         this.peerConnection!.addTrack(track, this.localStream!);
       });
     }
 
-    // Boost video bitrate to 4.5 Mbps Full HD
-    setTimeout(() => {
-      this.tuneVideoSenderQuality();
-    }, 500);
-
     // Handle remote track arrivals
     this.peerConnection.ontrack = (event) => {
       console.log('[WebRTC ontrack] Received remote track:', event.track.kind);
-      event.streams[0].getTracks().forEach(track => {
-        this.remoteStream!.addTrack(track);
-      });
+      if (event.streams && event.streams[0]) {
+        event.streams[0].getTracks().forEach(track => {
+          this.remoteStream!.addTrack(track);
+        });
+      } else {
+        this.remoteStream!.addTrack(event.track);
+      }
 
       if (this.onRemoteStreamCallback) {
         this.onRemoteStreamCallback(this.remoteStream!);
@@ -242,33 +238,19 @@ export class WebRTCService {
     return this.peerConnection;
   }
 
-  // Maximize video sender encoding bitrate for crystal clarity
-  private async tuneVideoSenderQuality(): Promise<void> {
-    if (!this.peerConnection) return;
-    try {
-      const senders = this.peerConnection.getSenders();
-      for (const sender of senders) {
-        if (sender.track && sender.track.kind === 'video') {
-          const params = sender.getParameters();
-          if (!params.encodings || params.encodings.length === 0) {
-            params.encodings = [{}];
-          }
-          params.encodings[0].maxBitrate = 4500000; // 4.5 Mbps Full-HD
-          params.encodings[0].maxFramerate = 60;
-          params.encodings[0].scaleResolutionDownBy = 1.0; // 100% full pixel resolution
-          await sender.setParameters(params);
-          console.log('[WebRTC] Tuned Video Quality to 4.5 Mbps Full HD @ 60fps');
+  // Flush buffered ICE candidates after remote description is set
+  private async processPendingCandidates() {
+    if (!this.peerConnection || !this.peerConnection.remoteDescription) return;
+    while (this.pendingCandidates.length > 0) {
+      const candidate = this.pendingCandidates.shift();
+      if (candidate) {
+        try {
+          await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.warn('[WebRTC] Error adding buffered ICE candidate:', err);
         }
       }
-    } catch (e) {
-      console.warn('[WebRTC] tuneVideoSenderQuality warning:', e);
     }
-  }
-
-  private enhanceSdpBitrate(sdp: string): string {
-    return sdp
-      .replace(/a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:4500\r\nb=TIAS:4500000\r\n')
-      .replace(/a=fmtp:111 /g, 'a=fmtp:111 minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxaveragebitrate=128000;');
   }
 
   // Start Call (Caller creates SDP Offer)
@@ -282,11 +264,8 @@ export class WebRTCService {
       offerToReceiveVideo: callType === 'video'
     });
 
-    const enhancedSdp = offer.sdp ? this.enhanceSdpBitrate(offer.sdp) : offer.sdp;
-    const finalOffer = { type: offer.type, sdp: enhancedSdp };
-
-    await pc.setLocalDescription(finalOffer);
-    return finalOffer;
+    await pc.setLocalDescription(offer);
+    return offer;
   }
 
   // Answer Call (Receiver creates SDP Answer)
@@ -296,31 +275,33 @@ export class WebRTCService {
     const pc = this.createPeerConnection();
 
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    await this.processPendingCandidates();
+
     const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
 
-    const enhancedSdp = answer.sdp ? this.enhanceSdpBitrate(answer.sdp) : answer.sdp;
-    const finalAnswer = { type: answer.type, sdp: enhancedSdp };
-
-    await pc.setLocalDescription(finalAnswer);
-    return finalAnswer;
+    return answer;
   }
 
   // Handle Answer on Caller Side
   public async handleAnswer(answer: RTCSessionDescriptionInit): Promise<void> {
     if (this.peerConnection) {
       await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-      await this.tuneVideoSenderQuality();
+      await this.processPendingCandidates();
     }
   }
 
   // Add Received ICE Candidate
   public async addIceCandidate(candidate: RTCIceCandidateInit): Promise<void> {
-    if (this.peerConnection && candidate) {
-      try {
-        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (err) {
-        console.error('Error adding ICE candidate:', err);
-      }
+    if (!this.peerConnection || !this.peerConnection.remoteDescription) {
+      this.pendingCandidates.push(candidate);
+      return;
+    }
+
+    try {
+      await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.warn('[WebRTC] Error adding ICE candidate:', err);
     }
   }
 
@@ -342,7 +323,7 @@ export class WebRTCService {
     }
   }
 
-  // Flip Camera (Front / Back) with Full 1080p Quality
+  // Flip Camera (Front / Back)
   public async flipCamera(): Promise<MediaStream | null> {
     this.isFrontCamera = !this.isFrontCamera;
     const newStream = await this.getLocalMedia('video');
@@ -353,7 +334,6 @@ export class WebRTCService {
       const videoSender = senders.find(s => s.track && s.track.kind === 'video');
       if (videoSender && videoTrack) {
         await videoSender.replaceTrack(videoTrack);
-        await this.tuneVideoSenderQuality();
       }
     }
     return newStream;
@@ -377,6 +357,7 @@ export class WebRTCService {
 
     this.remoteStream = null;
     this.targetUserId = null;
+    this.pendingCandidates = [];
     this.currentVoiceEffect = 'normal';
   }
 
