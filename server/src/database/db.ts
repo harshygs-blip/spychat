@@ -151,7 +151,7 @@ interface DatabaseSchema {
   saved_messages?: Record<string, string[]>;
 }
 
-const DB_FILE_PATH = path.join(__dirname, '../../data/spychat_db.json');
+const DB_FILE_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/spychat_db.json');
 
 class Database {
   private data: DatabaseSchema = {
