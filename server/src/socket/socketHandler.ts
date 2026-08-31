@@ -300,6 +300,38 @@ export function setupSocketHandler(io: Server): void {
       io.to(`user_${senderId}`).emit('messages_read', { conversationId, readBy: userId });
     });
 
+    // --- EMOJI REACTION (WhatsApp/Telegram Style) ---
+    socket.on('react_message', ({ conversationId, messageId, emoji }: { conversationId: string; messageId: string; emoji: string }) => {
+      try {
+        const updatedMsg = db.addMessageReaction(messageId, userId, emoji);
+        const reactions = updatedMsg?.reactions || [];
+
+        // Broadcast to conversation room and direct member rooms
+        io.to(`conv_${conversationId}`).emit('message_reaction', {
+          conversationId,
+          messageId,
+          userId,
+          emoji,
+          reactions
+        });
+
+        const conv = db.findConversationById(conversationId);
+        if (conv) {
+          conv.members.forEach(memberId => {
+            io.to(`user_${memberId}`).emit('message_reaction', {
+              conversationId,
+              messageId,
+              userId,
+              emoji,
+              reactions
+            });
+          });
+        }
+      } catch (err) {
+        console.error('Error handling react_message:', err);
+      }
+    });
+
     // --- WEBRTC AUDIO & VIDEO CALLING SIGNALING ---
 
     // 1. Caller initiates call (sends SDP Offer)

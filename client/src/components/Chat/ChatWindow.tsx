@@ -542,9 +542,33 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     });
   };
 
-  // Reaction on message
+  // Reaction on message (Optimistic Instant Highlight + Socket Broadcast)
   const handleReact = (msg: Message, emoji: string) => {
     setSelectedMessage(null);
+
+    // 1. Optimistic Local Update (0ms Instant Highlight on Chat Bubble)
+    setMessages(prev => {
+      const updated = prev.map(m => {
+        if (m.id !== msg.id) return m;
+        const currentReactions = m.reactions || [];
+        const myIdx = currentReactions.findIndex(r => r.user_id === currentUser.id);
+        let newReactions: any[];
+        if (myIdx !== -1) {
+          if (currentReactions[myIdx].emoji === emoji) {
+            newReactions = currentReactions.filter(r => r.user_id !== currentUser.id);
+          } else {
+            newReactions = currentReactions.map(r => r.user_id === currentUser.id ? { ...r, emoji } : r);
+          }
+        } else {
+          newReactions = [...currentReactions, { user_id: currentUser.id, emoji }];
+        }
+        return { ...m, reactions: newReactions };
+      });
+      LocalVaultService.saveMessages(conversation.id, updated);
+      return updated;
+    });
+
+    // 2. Emit to Server
     socketService.emit('react_message', {
       conversationId: conversation.id,
       messageId: msg.id,
@@ -1609,25 +1633,46 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   )}
                 </div>
 
-                {/* Reactions Badge */}
+                {/* Reactions Badge (WhatsApp / Telegram Highlight) */}
                 {msg.reactions && msg.reactions.length > 0 && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    alignSelf: isMe ? 'flex-end' : 'flex-start',
-                    background: 'rgba(15, 23, 42, 0.9)',
-                    padding: '2px 6px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)',
-                    fontSize: '12px',
-                    marginTop: '-6px',
-                    zIndex: 5
-                  }}>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedMessage(msg);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      alignSelf: isMe ? 'flex-end' : 'flex-start',
+                      background: msg.reactions.some(r => r.user_id === currentUser.id)
+                        ? 'rgba(6, 182, 212, 0.25)'
+                        : 'rgba(15, 23, 42, 0.95)',
+                      padding: '3px 8px',
+                      borderRadius: '14px',
+                      border: msg.reactions.some(r => r.user_id === currentUser.id)
+                        ? '1.5px solid var(--accent-cyan)'
+                        : '1px solid rgba(255, 255, 255, 0.15)',
+                      boxShadow: msg.reactions.some(r => r.user_id === currentUser.id)
+                        ? '0 0 12px rgba(6, 182, 212, 0.5)'
+                        : '0 2px 6px rgba(0, 0, 0, 0.4)',
+                      fontSize: '14px',
+                      marginTop: '-8px',
+                      marginBottom: '2px',
+                      zIndex: 10,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    }}
+                  >
                     {Array.from(new Set(msg.reactions.map(r => r.emoji))).map(emoji => (
                       <span key={emoji}>{emoji}</span>
                     ))}
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '2px' }}>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      color: msg.reactions.some(r => r.user_id === currentUser.id) ? 'var(--accent-cyan)' : '#cbd5e1',
+                      marginLeft: '2px'
+                    }}>
                       {msg.reactions.length}
                     </span>
                   </div>
