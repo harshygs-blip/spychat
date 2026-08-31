@@ -210,9 +210,10 @@ class Database {
 
   public searchUsers(query: string, currentUserId?: string): Omit<User, 'email' | 'password_hash'>[] {
     const clean = query.replace(/^@+/, '').trim().toLowerCase();
+    if (!clean || clean.length < 2) return [];
+
     return this.data.users
       .filter(u => (!currentUserId || u.id !== currentUserId) && (
-        !clean ||
         u.username.toLowerCase().includes(clean) || 
         u.display_name.toLowerCase().includes(clean)
       ))

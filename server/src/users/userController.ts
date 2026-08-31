@@ -2,10 +2,17 @@ import { Response } from 'express';
 import { db } from '../database/db';
 import { AuthenticatedRequest } from '../middleware/auth';
 
-// --- SEARCH USERS & USER DIRECTORY ---
+// --- SEARCH USERS (Strict Privacy: Exact / Prefix Tag Match Only) ---
 export function searchUsers(req: AuthenticatedRequest, res: Response): void {
   try {
-    const rawQuery = (req.query.q as string || '').trim();
+    const rawQuery = (req.query.q as string || '').trim().replace(/^@+/, '').toLowerCase();
+    
+    // Privacy-First: Never dump all users! Require typed username tag
+    if (!rawQuery || rawQuery.length < 2) {
+      res.json({ users: [] });
+      return;
+    }
+
     const results = db.searchUsers(rawQuery, req.userId);
     res.json({ users: results });
   } catch (error) {
