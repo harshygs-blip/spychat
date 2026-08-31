@@ -18,11 +18,14 @@ import { UnifiedSettingsModal } from './components/Settings/UnifiedSettingsModal
 import { AppLockModal } from './components/Security/AppLockModal';
 import { ThemePickerModal, ThemeType } from './components/Settings/ThemePickerModal';
 import { SpytusModal } from './components/Spytus/SpytusModal';
+import { NotificationService } from './services/notifications';
+import { PermissionModal } from './components/Common/PermissionModal';
 
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'chats' | 'spytus' | 'calls' | 'business' | 'settings'>('chats');
   
   // Theme State
@@ -187,11 +190,15 @@ export const App: React.FC = () => {
   useEffect(() => {
     const init = async () => {
       try {
+        NotificationService.initServiceWorker();
         const me = await AuthService.getMe();
         if (me) {
           setCurrentUser(me);
           if (me.app_pin) {
             setIsLocked(true);
+          }
+          if (!localStorage.getItem('spychat_permissions_prompted')) {
+            setShowPermissionModal(true);
           }
         }
       } catch (err) {
@@ -236,9 +243,12 @@ export const App: React.FC = () => {
         // Play notification chime & vibrate
         playMessageChime();
 
+        // Trigger system native notification (Works even when phone is locked or app is in background)
+        const senderName = data.message.sender_name || 'SPYCHAT';
+        NotificationService.sendSystemNotification(senderName, decText || 'New secure message', msg.conversation_id);
+
         // If not in this exact chat, show sleek In-App Notification Banner
         if (!isCurrentlyInThisChat) {
-          const senderName = data.message.sender_name || 'Contact';
           setInAppBanner({
             senderName,
             textPreview: decText || 'New secure message',
@@ -290,6 +300,10 @@ export const App: React.FC = () => {
     }) => {
       console.log('[Incoming Call]:', data);
       startRingtone();
+      NotificationService.sendSystemNotification(
+        `📞 Incoming ${data.callType === 'video' ? 'Video' : 'Audio'} Call`,
+        `${data.callerDisplayName || data.callerUsername} is calling you...`
+      );
       setIncomingCall({
         caller: {
           id: data.callerId,
@@ -698,6 +712,11 @@ export const App: React.FC = () => {
           correctPin={currentUser.app_pin}
           onUnlock={() => setIsLocked(false)}
         />
+      )}
+
+      {/* FIRST TIME PERMISSION REQUEST MODAL */}
+      {showPermissionModal && (
+        <PermissionModal onClose={() => setShowPermissionModal(false)} />
       )}
     </div>
   );
