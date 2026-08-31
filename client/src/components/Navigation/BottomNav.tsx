@@ -22,16 +22,35 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
+  const activeIndex = tabs.findIndex(t => t.id === activeTab);
+
   return (
     <nav className="glass-nav" style={{
       display: 'flex',
       justifyContent: 'space-around',
       alignItems: 'center',
-      padding: '8px 4px 12px 4px',
+      padding: '6px 4px 10px 4px',
       position: 'relative',
-      zIndex: 20
+      zIndex: 20,
+      borderTop: '1px solid var(--border-color)',
+      userSelect: 'none'
     }}>
-      {tabs.map((tab) => {
+      {/* Sliding Active Pill Background Capsule (iPhone WhatsApp Style) */}
+      <div style={{
+        position: 'absolute',
+        top: '6px',
+        left: `${(activeIndex * 20) + 2}%`,
+        width: '16%',
+        height: '42px',
+        background: 'var(--accent-gradient)',
+        borderRadius: '16px',
+        opacity: 0.16,
+        boxShadow: '0 0 20px var(--accent-primary-glow)',
+        transition: 'all 0.35s cubic-bezier(0.25, 1, 0.5, 1)',
+        pointerEvents: 'none'
+      }} />
+
+      {tabs.map((tab, idx) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
         return (
@@ -39,41 +58,50 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             style={{
+              flex: 1,
               background: 'none',
               border: 'none',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '4px',
+              justifyContent: 'center',
+              gap: '3px',
               color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
               cursor: 'pointer',
               position: 'relative',
-              padding: '6px 8px',
-              borderRadius: '12px',
-              transition: 'all 0.2s ease'
+              padding: '6px 4px',
+              borderRadius: '14px',
+              transition: 'all 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
+              transform: isActive ? 'scale(1.06)' : 'scale(1)'
             }}
           >
-            <div style={{ position: 'relative' }}>
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8} />
               {tab.badge && tab.badge > 0 ? (
                 <span style={{
                   position: 'absolute',
                   top: '-4px',
-                  right: '-8px',
+                  right: '-10px',
                   background: 'var(--accent-danger)',
                   color: '#fff',
                   fontSize: '10px',
-                  fontWeight: '700',
+                  fontWeight: '800',
                   padding: '2px 5px',
                   borderRadius: '10px',
                   minWidth: '16px',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.5)'
                 }}>
                   {tab.badge}
                 </span>
               ) : null}
             </div>
-            <span style={{ fontSize: '10.5px', fontWeight: isActive ? '800' : '500' }}>
+            <span style={{
+              fontSize: '10.5px',
+              fontWeight: isActive ? '800' : '500',
+              letterSpacing: '0.2px',
+              color: isActive ? '#ffffff' : 'var(--text-muted)'
+            }}>
               {tab.label}
             </span>
           </button>

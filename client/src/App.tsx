@@ -32,7 +32,43 @@ export const App: React.FC = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showShareAppModal, setShowShareAppModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chats' | 'spytus' | 'calls' | 'business' | 'settings'>('chats');
+  const MAIN_TABS = ['chats', 'spytus', 'calls', 'business', 'settings'] as const;
+  type TabType = typeof MAIN_TABS[number];
+
+  const [activeTab, setActiveTab] = useState<TabType>('chats');
+  const tabSliderRef = useRef<HTMLDivElement>(null);
+  const isProgrammaticScrollRef = useRef(false);
+
+  // Smooth scroll slider when tab changes
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    const index = MAIN_TABS.indexOf(tab);
+    if (tabSliderRef.current && index !== -1) {
+      isProgrammaticScrollRef.current = true;
+      const width = tabSliderRef.current.clientWidth;
+      tabSliderRef.current.scrollTo({
+        left: index * width,
+        behavior: 'smooth'
+      });
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 350);
+    }
+  };
+
+  // Sync active tab on manual finger swipe
+  const handleSliderScroll = () => {
+    if (isProgrammaticScrollRef.current || !tabSliderRef.current) return;
+    const { scrollLeft, clientWidth } = tabSliderRef.current;
+    if (clientWidth === 0) return;
+    const index = Math.round(scrollLeft / clientWidth);
+    if (index >= 0 && index < MAIN_TABS.length) {
+      const newTab = MAIN_TABS[index];
+      if (newTab !== activeTab) {
+        setActiveTab(newTab);
+      }
+    }
+  };
   
   // Theme State
   const [currentTheme, setCurrentTheme] = useState<ThemeType>(() => {
@@ -549,7 +585,7 @@ export const App: React.FC = () => {
 
       // 8. If on another tab (e.g. Spytus, Calls, Business, Settings), switch back to 'chats'
       if (activeTab !== 'chats') {
-        setActiveTab('chats');
+        handleTabChange('chats');
         return;
       }
 
@@ -630,9 +666,37 @@ export const App: React.FC = () => {
         onOpenShareApp={() => setShowShareAppModal(true)}
       />
 
-      {/* Main Tab Content */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-        {activeTab === 'chats' && (
+      {/* Main Tab Content - Horizontal Swipe Slider (iPhone WhatsApp Style) */}
+      <main
+        ref={tabSliderRef}
+        onScroll={handleSliderScroll}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'row',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          scrollSnapType: 'x mandatory',
+          scrollBehavior: 'smooth',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          position: 'relative',
+          width: '100%',
+          height: '100%'
+        }}
+      >
+        {/* Panel 1: Chats */}
+        <div style={{
+          width: '100%',
+          minWidth: '100%',
+          maxWidth: '100%',
+          height: '100%',
+          scrollSnapAlign: 'start',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
           <ChatList
             conversations={conversations}
             onSelectConversation={(conv) => {
@@ -644,46 +708,86 @@ export const App: React.FC = () => {
               setConversations(prev => prev.filter(c => c.id !== convId));
             }}
           />
-        )}
+        </div>
 
-        {activeTab === 'spytus' && (
+        {/* Panel 2: Spytus */}
+        <div style={{
+          width: '100%',
+          minWidth: '100%',
+          maxWidth: '100%',
+          height: '100%',
+          scrollSnapAlign: 'start',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
           <SpytusModal
             currentUser={currentUser}
-            onOpenChatWithPeer={(peerId, replyText) => {
+            onOpenChatWithPeer={(peerId) => {
               const userObj = { id: peerId, username: 'contact', display_name: 'Contact', avatar_id: '1' } as any;
               handleSelectUserFromSearch(userObj, 'chat');
             }}
           />
-        )}
+        </div>
 
-        {activeTab === 'calls' && (
+        {/* Panel 3: Calls */}
+        <div style={{
+          width: '100%',
+          minWidth: '100%',
+          maxWidth: '100%',
+          height: '100%',
+          scrollSnapAlign: 'start',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
           <CallLogs onStartCall={(peer, type) => handleStartCall(peer, type)} />
-        )}
+        </div>
 
-        {activeTab === 'business' && (
+        {/* Panel 4: Business */}
+        <div style={{
+          width: '100%',
+          minWidth: '100%',
+          maxWidth: '100%',
+          height: '100%',
+          scrollSnapAlign: 'start',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
           <BusinessAutomationModal
             currentUser={currentUser}
             onUpdate={(u) => setCurrentUser(u)}
           />
-        )}
+        </div>
 
-        {activeTab === 'settings' && (
+        {/* Panel 5: Settings */}
+        <div style={{
+          width: '100%',
+          minWidth: '100%',
+          maxWidth: '100%',
+          height: '100%',
+          scrollSnapAlign: 'start',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
           <UnifiedSettingsModal
             currentUser={currentUser}
             currentTheme={currentTheme}
             onSelectTheme={applyTheme}
             onUpdateUser={(u) => setCurrentUser(u)}
             onLogout={handleLogout}
-            onNavigateToBusiness={() => setActiveTab('business')}
+            onNavigateToBusiness={() => handleTabChange('business')}
             onOpenShareApp={() => setShowShareAppModal(true)}
           />
-        )}
+        </div>
       </main>
 
-      {/* Bottom Navigation (4 Clean Tabs) */}
+      {/* Bottom Navigation with Synced Slider */}
       <BottomNav
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
+        onTabChange={(tab) => handleTabChange(tab)}
         unreadChatCount={totalUnreadCount}
       />
 
