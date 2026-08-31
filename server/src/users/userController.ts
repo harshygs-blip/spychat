@@ -39,6 +39,24 @@ export function getUserPublicProfile(req: AuthenticatedRequest, res: Response): 
 export function updateProfile(req: AuthenticatedRequest, res: Response): void {
   const body = req.body || {};
   const updates: any = {};
+  const username = body.username;
+  if (username) {
+    const cleanUsername = username.trim().replace(/^@/, '').toLowerCase();
+    if (cleanUsername.length < 3 || cleanUsername.length > 25) {
+      res.status(400).json({ error: 'Username must be between 3 and 25 characters' });
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(cleanUsername)) {
+      res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores (_)' });
+      return;
+    }
+    const existing = db.findUserByUsername(cleanUsername);
+    if (existing && existing.id !== req.userId!) {
+      res.status(409).json({ error: `Username @${cleanUsername} is already taken. Please choose another username.` });
+      return;
+    }
+    updates.username = cleanUsername;
+  }
 
   const displayName = body.display_name || body.displayName;
   if (displayName) updates.display_name = displayName.trim();

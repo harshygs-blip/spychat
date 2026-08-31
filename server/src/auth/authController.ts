@@ -20,20 +20,40 @@ export async function signup(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const existingEmail = db.findUserByEmail(email);
-    if (existingEmail) {
-      res.status(409).json({ error: 'Email is already registered' });
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      res.status(400).json({ error: 'Please enter a valid email address' });
       return;
     }
 
-    // Auto-generate or sanitize username
-    let chosenUsername = username ? username.trim().replace(/^@/, '').toLowerCase() : '';
-    if (!chosenUsername) {
-      chosenUsername = 'spy_' + Math.random().toString(36).substring(2, 8);
+    const existingEmail = db.findUserByEmail(cleanEmail);
+    if (existingEmail) {
+      res.status(409).json({ error: 'This email is already registered. 1 email can only be used for 1 account.' });
+      return;
     }
 
-    if (db.findUserByUsername(chosenUsername)) {
-      chosenUsername = chosenUsername + '_' + Math.floor(Math.random() * 899 + 100);
+    // Strict Unique Username Validation
+    let chosenUsername = username ? username.trim().replace(/^@/, '').toLowerCase() : '';
+    if (!chosenUsername) {
+      res.status(400).json({ error: 'Username is required' });
+      return;
+    }
+
+    if (chosenUsername.length < 3 || chosenUsername.length > 25) {
+      res.status(400).json({ error: 'Username must be between 3 and 25 characters' });
+      return;
+    }
+
+    if (!/^[a-z0-9_]+$/.test(chosenUsername)) {
+      res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores (_)' });
+      return;
+    }
+
+    const existingUser = db.findUserByUsername(chosenUsername);
+    if (existingUser) {
+      res.status(409).json({ error: `Username @${chosenUsername} is already taken. Please choose a different username.` });
+      return;
     }
 
     // 256-bit Salt + 12-round Key Derivation
