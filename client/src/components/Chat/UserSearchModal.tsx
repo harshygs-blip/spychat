@@ -18,7 +18,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
 
   useEffect(() => {
     let isCurrent = true;
-    const cleanQuery = query.trim();
+    const cleanQuery = query.replace(/^@+/, '').trim();
 
     if (!cleanQuery) {
       setResults([]);
@@ -42,7 +42,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
 
     const timer = setTimeout(() => {
       fetchResults();
-    }, 150);
+    }, 100);
 
     return () => {
       isCurrent = false;
@@ -224,7 +224,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
             gap: '12px'
           }}>
             <ShieldAlert size={36} color="var(--text-muted)" />
-            <p style={{ fontSize: '15px' }}>No user found matching "@{query}"</p>
+            <p style={{ fontSize: '15px' }}>No user found matching "@{query.replace(/^@+/, '')}"</p>
             <p style={{ fontSize: '12px' }}>Make sure the @tag is spelled accurately.</p>
           </div>
         ) : (
