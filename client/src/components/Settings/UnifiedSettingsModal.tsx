@@ -27,6 +27,7 @@ import { User as UserType, Message } from '../../types';
 import { AuthService } from '../../services/auth';
 import { socketService } from '../../services/socket';
 import { ThemeType, THEME_OPTIONS } from './ThemePickerModal';
+import { APP_VERSION, BUILD_DATE, BUILD_TIME, FULL_BUILD_INFO } from '../../config/version';
 
 interface UnifiedSettingsProps {
   currentUser: UserType;
@@ -1351,9 +1352,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
             <ShieldCheck size={26} />
           </div>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>SPYCHAT v1.0.0</h3>
-            <p style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: '600' }}>
-              Zero Logs • WebRTC P2P • AES-GCM
+            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>SPYCHAT {APP_VERSION}</h3>
+            <p style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: '700' }}>
+              📅 Build: {BUILD_DATE} • {BUILD_TIME}
             </p>
           </div>
         </div>

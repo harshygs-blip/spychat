@@ -22,6 +22,7 @@ import { NotificationService } from './services/notifications';
 import { PermissionModal } from './components/Common/PermissionModal';
 import { LocalVaultService } from './services/localVault';
 import { ShareAppModal } from './components/Settings/ShareAppModal';
+import { SplashScreen } from './components/Common/SplashScreen';
 
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -189,9 +190,10 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Load User on Start
+  // Load User on Start with Splash Transition
   useEffect(() => {
     const init = async () => {
+      const startTime = Date.now();
       try {
         NotificationService.initServiceWorker();
         const me = await AuthService.getMe();
@@ -207,7 +209,11 @@ export const App: React.FC = () => {
       } catch (err) {
         console.error('Init auth error:', err);
       } finally {
-        setLoadingUser(false);
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 1100 - elapsed);
+        setTimeout(() => {
+          setLoadingUser(false);
+        }, remaining);
       }
     };
     init();
@@ -505,19 +511,7 @@ export const App: React.FC = () => {
   const totalUnreadCount = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
 
   if (loadingUser) {
-    return (
-      <div style={{
-        height: '100vh',
-        background: 'var(--bg-primary)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--accent-primary)',
-        fontWeight: '700'
-      }}>
-        Initializing SPYCHAT Secure Enclave...
-      </div>
-    );
+    return <SplashScreen statusText="Initializing SPYCHAT Quantum Enclave..." />;
   }
 
   if (!currentUser) {
