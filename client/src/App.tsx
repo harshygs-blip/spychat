@@ -21,12 +21,14 @@ import { SpytusModal } from './components/Spytus/SpytusModal';
 import { NotificationService } from './services/notifications';
 import { PermissionModal } from './components/Common/PermissionModal';
 import { LocalVaultService } from './services/localVault';
+import { ShareAppModal } from './components/Settings/ShareAppModal';
 
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [showShareAppModal, setShowShareAppModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'chats' | 'spytus' | 'calls' | 'business' | 'settings'>('chats');
   
   // Theme State
@@ -538,6 +540,7 @@ export const App: React.FC = () => {
         onOpenSearch={() => setShowSearch(true)}
         onOpenTheme={() => setShowThemeModal(true)}
         onOpenSettings={() => setActiveTab('settings')}
+        onOpenShareApp={() => setShowShareAppModal(true)}
       />
 
       {/* Main Tab Content */}
@@ -585,6 +588,7 @@ export const App: React.FC = () => {
             onUpdateUser={(u) => setCurrentUser(u)}
             onLogout={handleLogout}
             onNavigateToBusiness={() => setActiveTab('business')}
+            onOpenShareApp={() => setShowShareAppModal(true)}
           />
         )}
       </main>
@@ -595,6 +599,11 @@ export const App: React.FC = () => {
         onTabChange={(tab) => setActiveTab(tab)}
         unreadChatCount={totalUnreadCount}
       />
+
+      {/* SHARE APP / DIRECT APK DOWNLOAD MODAL 📲 */}
+      {showShareAppModal && (
+        <ShareAppModal onClose={() => setShowShareAppModal(false)} />
+      )}
 
       {/* THEME PICKER MODAL */}
       {showThemeModal && (

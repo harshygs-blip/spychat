@@ -43,6 +43,15 @@ app.use('/conversations', conversationRoutes);
 app.use('/messages', messageRoutes);
 app.use('/calls', callRoutes);
 
+// Direct APK Download & Sharing Routes
+app.get('/download/app.apk', (req, res) => {
+  res.redirect('https://github.com/harshygs-blip/spychat/raw/main/app-debug.apk');
+});
+
+app.get('/download', (req, res) => {
+  res.redirect('https://github.com/harshygs-blip/spychat/raw/main/app-debug.apk');
+});
+
 // Socket.io Setup (100MB buffer for bulk multi-media)
 const io = new Server(server, {
   cors: {

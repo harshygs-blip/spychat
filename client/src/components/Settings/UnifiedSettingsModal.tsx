@@ -35,6 +35,7 @@ interface UnifiedSettingsProps {
   onUpdateUser: (user: UserType) => void;
   onLogout: () => void;
   onNavigateToBusiness: () => void;
+  onOpenShareApp?: () => void;
 }
 
 type SettingsSubPage = 'main' | 'profile' | 'theme' | 'privacy' | 'security' | 'vault' | 'backup' | 'notifications' | 'about';
@@ -45,7 +46,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   onSelectTheme,
   onUpdateUser,
   onLogout,
-  onNavigateToBusiness
+  onNavigateToBusiness,
+  onOpenShareApp
 }) => {
   const [currentPage, setCurrentPage] = useState<SettingsSubPage>('main');
 
@@ -621,6 +623,43 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
             </div>
             <ChevronRight size={18} color="var(--text-muted)" />
           </div>
+
+          {/* 9. Share & Download App APK 📲 */}
+          {onOpenShareApp && (
+            <div
+              onClick={onOpenShareApp}
+              style={{
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                borderTop: '1px solid var(--border-color)',
+                background: 'rgba(6, 182, 212, 0.06)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 0 12px rgba(6, 182, 212, 0.35)'
+                }}>
+                  <Smartphone size={19} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--accent-cyan)' }}>Share SPYCHAT App (APK)</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Direct APK download & WhatsApp share</div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--accent-cyan)" />
+            </div>
+          )}
         </div>
 
         {/* LOGOUT BUTTON */}

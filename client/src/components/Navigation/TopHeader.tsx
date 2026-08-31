@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Lock, Search, Palette, Settings } from 'lucide-react';
+import { Shield, Lock, Search, Palette, Settings, Share2 } from 'lucide-react';
 import { User } from '../../types';
 
 interface TopHeaderProps {
@@ -8,6 +8,7 @@ interface TopHeaderProps {
   onOpenSearch: () => void;
   onOpenTheme: () => void;
   onOpenSettings: () => void;
+  onOpenShareApp?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -15,7 +16,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   activeTab,
   onOpenSearch,
   onOpenTheme,
-  onOpenSettings
+  onOpenSettings,
+  onOpenShareApp
 }) => {
   return (
     <header className="glass" style={{
@@ -64,6 +66,28 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Share APK Button 📲 */}
+        {onOpenShareApp && (
+          <button
+            onClick={onOpenShareApp}
+            title="Share SPYCHAT App APK"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'rgba(6, 182, 212, 0.12)',
+              border: '1px solid rgba(6, 182, 212, 0.35)',
+              color: 'var(--accent-cyan)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+          >
+            <Share2 size={17} />
+          </button>
+        )}
+
         {/* Search Users Button */}
         <button
           onClick={onOpenSearch}
