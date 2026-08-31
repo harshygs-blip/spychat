@@ -274,6 +274,10 @@ class Database {
   }
 
   // CONVERSATIONS
+  public findConversationById(id: string): Conversation | undefined {
+    return this.data.conversations.find(c => c.id === id);
+  }
+
   public findOrCreateDirectConversation(userA: string, userB: string): Conversation {
     const existing = this.data.conversations.find(c => 
       c.type === 'direct' && 

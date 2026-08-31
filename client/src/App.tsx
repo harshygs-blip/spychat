@@ -60,6 +60,40 @@ export const App: React.FC = () => {
   // Search Modal State
   const [showSearch, setShowSearch] = useState(false);
 
+  // In-App Message Banner Notification
+  const [inAppBanner, setInAppBanner] = useState<{
+    senderName: string;
+    textPreview: string;
+    conversationId: string;
+    avatarId?: string;
+  } | null>(null);
+
+  const playMessageChime = () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([80, 40, 80]);
+      }
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch {}
+  };
+
   // Ringtone Audio Ref
   const ringtoneAudioRef = useRef<{ stop: () => void } | null>(null);
 
@@ -176,7 +210,7 @@ export const App: React.FC = () => {
     socketService.connect();
     reloadConversations();
 
-    // Listen for new messages globally in App to update chat list live
+    // Listen for new messages globally in App to update chat list live & trigger in-app notification
     const handleGlobalNewMessage = async (data: { message: any }) => {
       const msg = data.message;
       if (!msg) return;
@@ -184,22 +218,51 @@ export const App: React.FC = () => {
       let decText = msg.ciphertext;
       if (msg.message_type === 'text') {
         decText = await E2EEService.decryptMessage(msg.ciphertext, msg.iv || '', msg.conversation_id);
+      } else if (msg.message_type === 'image') {
+        decText = '📷 Photo';
+      } else if (msg.message_type === 'video') {
+        decText = '🎥 Video';
+      } else if (msg.message_type === 'voice') {
+        decText = '🎙️ Voice message';
+      } else if (msg.message_type === 'round_video') {
+        decText = '⭕ Video Note';
+      }
+
+      // Check if message is from contact (not self)
+      const isFromOther = msg.sender_id !== currentUser.id;
+      const isCurrentlyInThisChat = activeConversation && activeConversation.id === msg.conversation_id;
+
+      if (isFromOther) {
+        // Play notification chime & vibrate
+        playMessageChime();
+
+        // If not in this exact chat, show sleek In-App Notification Banner
+        if (!isCurrentlyInThisChat) {
+          const senderName = data.message.sender_name || 'Contact';
+          setInAppBanner({
+            senderName,
+            textPreview: decText || 'New secure message',
+            conversationId: msg.conversation_id
+          });
+          setTimeout(() => {
+            setInAppBanner(prev => prev && prev.conversationId === msg.conversation_id ? null : prev);
+          }, 4500);
+        }
       }
 
       setConversations(prev => {
         const exists = prev.find(c => c.id === msg.conversation_id);
         if (exists) {
-          const isCurrentlyInThisChat = activeConversation && activeConversation.id === msg.conversation_id;
           const updatedConv: Conversation = {
             ...exists,
             updated_at: msg.created_at,
             last_message: { ...msg, decrypted_text: decText },
-            unread_count: isCurrentlyInThisChat ? 0 : ((exists.unread_count || 0) + (msg.sender_id !== currentUser.id ? 1 : 0))
+            unread_count: isCurrentlyInThisChat ? 0 : ((exists.unread_count || 0) + (isFromOther ? 1 : 0))
           };
-          // Move to top of chat list
+          // Move to very top of list
           return [updatedConv, ...prev.filter(c => c.id !== msg.conversation_id)];
         } else {
-          // If brand new conversation, reload list from server
+          // If brand new conversation from a new contact, reload entire list immediately
           reloadConversations();
           return prev;
         }
@@ -558,6 +621,75 @@ export const App: React.FC = () => {
           activeCall={activeCall}
           onEndCall={handleEndActiveCall}
         />
+      )}
+
+      {/* IN-APP TOAST NOTIFICATION BANNER (Instant Alert for New Messages) */}
+      {inAppBanner && (
+        <div
+          onClick={async () => {
+            const targetConv = conversations.find(c => c.id === inAppBanner.conversationId);
+            if (targetConv) {
+              setActiveConversation(targetConv);
+            } else {
+              await reloadConversations();
+              const refreshed = conversations.find(c => c.id === inAppBanner.conversationId);
+              if (refreshed) setActiveConversation(refreshed);
+            }
+            setInAppBanner(null);
+          }}
+          style={{
+            position: 'fixed',
+            top: '14px',
+            left: '14px',
+            right: '14px',
+            zIndex: 9999,
+            background: 'rgba(10, 18, 36, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: '1.5px solid var(--accent-cyan)',
+            borderRadius: '18px',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(6, 182, 212, 0.35)',
+            cursor: 'pointer',
+            animation: 'slideDownFade 0.28s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+        >
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '800',
+            fontSize: '15px',
+            color: '#000',
+            flexShrink: 0
+          }}>
+            {inAppBanner.senderName.substring(0, 2).toUpperCase()}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: '800', fontSize: '14px', color: 'var(--accent-cyan)' }}>
+                {inAppBanner.senderName}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Now • Tap to reply</span>
+            </div>
+            <div style={{
+              fontSize: '13px',
+              color: '#ffffff',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              marginTop: '2px'
+            }}>
+              {inAppBanner.textPreview}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* APP PASSCODE VAULT LOCK */}

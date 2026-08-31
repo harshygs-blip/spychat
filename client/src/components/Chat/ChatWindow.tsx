@@ -337,15 +337,33 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       }
     };
 
-    const handleReadReceipt = (data: { conversationId: string }) => {
+    // Delivered receipt (Double Grey Tick ✓✓)
+    const handleMessageDelivered = (data: { messageId: string; conversationId: string }) => {
       if (data.conversationId === conversation.id) {
-        setMessages(prev => prev.map(m => m.sender_id === currentUser.id ? { ...m, status: 'read' } : m));
+        setMessages(prev => {
+          const updated = prev.map(m => m.id === data.messageId ? { ...m, status: 'delivered' as const } : m);
+          LocalVaultService.saveMessages(conversation.id, updated);
+          return updated;
+        });
+      }
+    };
+
+    // Read receipt (Double Blue/Cyan Tick ✓✓)
+    const handleReadReceipt = (data: { conversationId: string; readBy?: string }) => {
+      if (data.conversationId === conversation.id) {
+        setMessages(prev => {
+          const updated = prev.map(m => m.sender_id === currentUser.id ? { ...m, status: 'read' as const } : m);
+          LocalVaultService.saveMessages(conversation.id, updated);
+          return updated;
+        });
       }
     };
 
     socketService.on('new_message', handleNewMessage);
     socketService.on('message_ack', handleNewMessage);
+    socketService.on('message_reaction', handleReaction);
     socketService.on('message_reacted', handleReaction);
+    socketService.on('message_delivered', handleMessageDelivered);
     socketService.on('message_deleted', handleDelete);
     socketService.on('history_cleared', handleHistoryCleared);
     socketService.on('message_edited', handleEdit);
@@ -358,7 +376,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       socketService.emit('leave_conversation', { conversationId: conversation.id });
       socketService.off('new_message', handleNewMessage);
       socketService.off('message_ack', handleNewMessage);
+      socketService.off('message_reaction', handleReaction);
       socketService.off('message_reacted', handleReaction);
+      socketService.off('message_delivered', handleMessageDelivered);
       socketService.off('message_deleted', handleDelete);
       socketService.off('history_cleared', handleHistoryCleared);
       socketService.off('message_edited', handleEdit);
@@ -1250,14 +1270,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       )}
 
       {/* Messages Scroll Area */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px'
-      }}>
+      <div 
+        className="chat-scroll-container"
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}
+      >
         {/* Disappearing Timer Active Banner */}
         {disappearingTimer > 0 && (
           <div style={{
@@ -1298,6 +1321,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               <div
                 key={msg.id}
                 id={`msg-${msg.id}`}
+                className="msg-bubble-animate"
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setSelectedMessage(msg);

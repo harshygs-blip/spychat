@@ -297,7 +297,22 @@ export function setupSocketHandler(io: Server): void {
 
     socket.on('mark_read', ({ conversationId, senderId }: { conversationId: string; senderId: string }) => {
       db.markMessagesAsRead(conversationId, userId);
+      io.to(`conv_${conversationId}`).emit('messages_read', { conversationId, readBy: userId });
       io.to(`user_${senderId}`).emit('messages_read', { conversationId, readBy: userId });
+    });
+
+    socket.on('ack_delivered', ({ messageId, conversationId, senderId }: { messageId: string; conversationId?: string; senderId?: string }) => {
+      try {
+        db.updateMessage(messageId, { status: 'delivered' });
+        if (conversationId) {
+          io.to(`conv_${conversationId}`).emit('message_delivered', { messageId, conversationId });
+        }
+        if (senderId) {
+          io.to(`user_${senderId}`).emit('message_delivered', { messageId, conversationId });
+        }
+      } catch (err) {
+        console.error('Error handling ack_delivered:', err);
+      }
     });
 
     // --- EMOJI REACTION (WhatsApp/Telegram Style) ---
