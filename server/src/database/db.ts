@@ -179,10 +179,69 @@ class Database {
         this.data = JSON.parse(raw);
       } catch (err) {
         console.error('Error reading DB file, reinitializing', err);
-        this.save();
       }
-    } else {
-      this.save();
+    }
+    this.ensureSeedUsers();
+    this.save();
+  }
+
+  private ensureSeedUsers() {
+    if (!this.data.users) this.data.users = [];
+    
+    // Hash for password "123456"
+    const defaultHash = '$2b$10$vzjwKiY9TmfFQzUqaKLo/udD6LEQ2C7Nr7oM0lr/TtV/vHsx2isoq';
+
+    const seedUsers: Partial<User>[] = [
+      {
+        id: 'usr_harsh_primary_1',
+        email: 'harsh@gmail.com',
+        username: 'mrharsh',
+        display_name: 'Harsh',
+        password_hash: defaultHash,
+        avatar_id: 'avatar_1'
+      },
+      {
+        id: 'usr_agent1_shadow_2',
+        email: 'test@gmail.com',
+        username: 'shadow_fox',
+        display_name: 'Agent Fox',
+        password_hash: defaultHash,
+        avatar_id: 'avatar_5'
+      },
+      {
+        id: 'usr_agent2_ag2_3',
+        email: 'test1@gmail.com',
+        username: 'agent2',
+        display_name: 'Agent 2',
+        password_hash: defaultHash,
+        avatar_id: 'avatar_7'
+      }
+    ];
+
+    for (const seed of seedUsers) {
+      const exists = this.data.users.find(u => u.email.toLowerCase() === seed.email!.toLowerCase() || u.username.toLowerCase() === seed.username!.toLowerCase());
+      if (!exists) {
+        this.data.users.push({
+          id: seed.id!,
+          email: seed.email!,
+          username: seed.username!,
+          display_name: seed.display_name!,
+          password_hash: seed.password_hash!,
+          avatar_id: seed.avatar_id || 'avatar_1',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          last_seen: new Date().toISOString(),
+          privacy: {
+            last_seen_visibility: 'everyone',
+            online_status_visibility: 'everyone',
+            read_receipts: true,
+            typing_indicator: true
+          }
+        });
+      } else {
+        // Ensure valid password hash for password "123456"
+        exists.password_hash = defaultHash;
+      }
     }
   }
 
