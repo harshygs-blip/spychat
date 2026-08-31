@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { db } from '../database/db';
 import { AuthenticatedRequest } from '../middleware/auth';
 
@@ -105,4 +106,44 @@ export function updateProfile(req: AuthenticatedRequest, res: Response): void {
       business_automation: updated.business_automation
     }
   });
+}
+
+// --- CHANGE PASSWORD ---
+export async function changePassword(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const currentPassword = (req.body.currentPassword || req.body.current_password || '').toString();
+    const newPassword = (req.body.newPassword || req.body.new_password || '').toString();
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Current password and new password are required' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters long' });
+      return;
+    }
+
+    const user = db.findUserById(req.userId!);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      res.status(401).json({ error: 'Current password does not match. Please verify your current password.' });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    db.updateUser(user.id, { password_hash: passwordHash });
+
+    res.json({ message: 'Password changed successfully! 🔐' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Internal server error while changing password' });
+  }
 }

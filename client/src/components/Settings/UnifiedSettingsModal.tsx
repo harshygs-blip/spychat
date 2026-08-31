@@ -61,6 +61,15 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   const [savedMsg, setSavedMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Password Change States
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
+  const [passLoading, setPassLoading] = useState(false);
+  const [passMsg, setPassMsg] = useState('');
+  const [passError, setPassError] = useState('');
+
   // Load Saved Messages when entering vault
   useEffect(() => {
     if (currentPage === 'vault') {
@@ -151,6 +160,43 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
       console.error('Save error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassError('');
+    setPassMsg('');
+
+    if (!currentPassword || !newPassword) {
+      setPassError('Please fill in both current and new password');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPassError('New password must be at least 6 characters long');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPassError('New passwords do not match');
+      return;
+    }
+
+    setPassLoading(true);
+    try {
+      const res = await AuthService.changePassword(currentPassword, newPassword);
+      setPassMsg(res.message || 'Password changed successfully! 🔐');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => {
+        setPassMsg('');
+      }, 3000);
+    } catch (err: any) {
+      setPassError(err.message || 'Failed to update password');
+    } finally {
+      setPassLoading(false);
     }
   };
 
@@ -714,6 +760,136 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
           >
             {loading ? 'Saving...' : savedMsg || 'Save Profile'}
           </button>
+        </div>
+
+        {/* --- CHANGE PASSWORD SECTION --- */}
+        <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '14px', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'rgba(6, 182, 212, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent-cyan)'
+              }}>
+                <KeyRound size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: '800', color: '#ffffff' }}>Change Password</div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>Update your account access key</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowPasswordFields(!showPasswordFields)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '6px 12px',
+                color: 'var(--accent-cyan)',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              {showPasswordFields ? 'Hide' : 'Change'}
+            </button>
+          </div>
+
+          {showPasswordFields && (
+            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+              {passError && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  color: '#fca5a5',
+                  fontSize: '12.5px',
+                  fontWeight: '600',
+                  textAlign: 'center'
+                }}>
+                  {passError}
+                </div>
+              )}
+
+              {passMsg && (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  color: '#6ee7b7',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  textAlign: 'center'
+                }}>
+                  {passMsg}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter current password"
+                  className="spychat-input"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                  New Password (Min 6 chars)
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter new password"
+                  className="spychat-input"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Repeat new password"
+                  className="spychat-input"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={passLoading}
+                className="btn-primary"
+                style={{
+                  height: '44px',
+                  fontSize: '13.5px',
+                  fontWeight: '800',
+                  marginTop: '4px',
+                  cursor: passLoading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {passLoading ? 'Updating Password...' : 'Update Password 🔐'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     );

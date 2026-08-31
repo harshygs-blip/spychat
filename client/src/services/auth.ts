@@ -117,6 +117,25 @@ export class AuthService {
     return data.user;
   }
 
+  public static async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    const token = this.getAccessToken();
+    const res = await fetch(`${API_BASE}/users/change-password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to change password');
+    }
+
+    return data;
+  }
+
   public static async searchUsers(query: string): Promise<User[]> {
     const token = this.getAccessToken();
     const res = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(query)}`, {
