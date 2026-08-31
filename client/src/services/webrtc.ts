@@ -2,6 +2,7 @@ import { socketService } from './socket';
 
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
+    // Multi-Global STUN Infrastructure
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
@@ -13,25 +14,32 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: 'stun:stun.nextcloud.com:443' },
     { urls: 'stun:stun.voip.blackberry.com:3478' },
     { urls: 'stun:stun.stunprotocol.org:3478' },
+    
+    // TURN UDP / TCP Relays for Symmetric Carrier-Grade NAT (Jio / Airtel across states)
     {
-      urls: 'turn:openrelay.metered.ca:80',
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp',
+        'turns:openrelay.metered.ca:443?transport=tcp',
+        'turns:openrelay.metered.ca:5349',
+        'turns:openrelay.metered.ca:5349?transport=tcp'
+      ],
       username: 'openrelayproject',
       credential: 'openrelayproject'
     },
     {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      urls: [
+        'turn:relay.metered.ca:80',
+        'turn:relay.metered.ca:443',
+        'turn:relay.metered.ca:443?transport=tcp',
+        'turns:relay.metered.ca:443?transport=tcp'
+      ],
       username: 'openrelayproject',
       credential: 'openrelayproject'
     }
   ],
-  iceCandidatePoolSize: 10,
-  bundlePolicy: 'max-bundle',
-  rtcpMuxPolicy: 'require'
+  iceCandidatePoolSize: 10
 };
 
 export type VoiceEffectType = 'normal' | 'robot' | 'deep' | 'radio';
@@ -358,10 +366,16 @@ export class WebRTCService {
     // Send ICE candidates to peer via socket
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.targetUserId) {
-        console.log('[WebRTC onicecandidate] Emitting candidate to peer:', this.targetUserId);
+        const candidateJson = event.candidate.toJSON ? event.candidate.toJSON() : {
+          candidate: event.candidate.candidate,
+          sdpMid: event.candidate.sdpMid,
+          sdpMLineIndex: event.candidate.sdpMLineIndex,
+          usernameFragment: event.candidate.usernameFragment
+        };
+        console.log('[WebRTC onicecandidate] Emitting candidate to peer:', this.targetUserId, candidateJson.candidate?.substring(0, 40));
         socketService.emit('ice_candidate', {
           targetUserId: this.targetUserId,
-          candidate: event.candidate
+          candidate: candidateJson
         });
       }
     };
@@ -390,6 +404,7 @@ export class WebRTCService {
       if (candidate) {
         try {
           await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log('[WebRTC] Successfully applied buffered candidate');
         } catch (err) {
           console.warn('[WebRTC] Error adding buffered ICE candidate:', err);
         }
@@ -439,16 +454,21 @@ export class WebRTCService {
   }
 
   // Add Received ICE Candidate
-  public async addIceCandidate(candidate: RTCIceCandidateInit): Promise<void> {
+  public async addIceCandidate(candidate: any): Promise<void> {
+    if (!candidate) return;
+    const candidateData = typeof candidate === 'string' ? JSON.parse(candidate) : candidate;
+
     if (!this.peerConnection || !this.peerConnection.remoteDescription) {
-      this.pendingCandidates.push(candidate);
+      console.log('[WebRTC] Buffering ICE candidate (remoteDescription pending)...');
+      this.pendingCandidates.push(candidateData);
       return;
     }
 
     try {
-      await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidateData));
+      console.log('[WebRTC] Successfully added live ICE candidate');
     } catch (err) {
-      console.warn('[WebRTC] Error adding ICE candidate:', err);
+      console.warn('[WebRTC] Error adding live ICE candidate:', err);
     }
   }
 
