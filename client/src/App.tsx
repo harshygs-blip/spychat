@@ -11,6 +11,7 @@ import { ChatList } from './components/Chat/ChatList';
 import { ChatWindow } from './components/Chat/ChatWindow';
 import { UserSearchModal } from './components/Chat/UserSearchModal';
 import { CallModal } from './components/Call/CallModal';
+import { FloatingCallPiP } from './components/Call/FloatingCallPiP';
 import { IncomingCallModal } from './components/Call/IncomingCallModal';
 import { CallLogs } from './components/Call/CallLogs';
 import { BusinessAutomationModal } from './components/Business/BusinessAutomationModal';
@@ -194,6 +195,7 @@ export const App: React.FC = () => {
   } | null>(null);
 
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
+  const [isCallMinimized, setIsCallMinimized] = useState(false);
 
   // Function to reload conversations from server and decrypt latest message
   const reloadConversations = useCallback(async () => {
@@ -431,6 +433,7 @@ export const App: React.FC = () => {
   // Handle starting outgoing call
   const handleStartCall = async (peer: User, callType: 'audio' | 'video') => {
     try {
+      setIsCallMinimized(false);
       setActiveCall({
         peerUser: peer,
         callType,
@@ -449,6 +452,7 @@ export const App: React.FC = () => {
       console.error('Call failed to start:', err);
       alert(`Could not start call: ${err.message || 'Camera/Microphone permission denied'}`);
       setActiveCall(null);
+      setIsCallMinimized(false);
     }
   };
 
@@ -458,6 +462,7 @@ export const App: React.FC = () => {
 
     try {
       stopRingtone();
+      setIsCallMinimized(false);
       const { caller, callType, offer } = incomingCall;
       setActiveCall({
         peerUser: caller,
@@ -503,6 +508,33 @@ export const App: React.FC = () => {
       });
       webrtcService.endCall();
       setActiveCall(null);
+      setIsCallMinimized(false);
+    }
+  };
+
+  // Quick Chat with the person currently on Call (minimizes call into floating PiP)
+  const handleOpenChatWithCallPeer = async (peer: User) => {
+    setIsCallMinimized(true);
+    try {
+      const token = AuthService.getAccessToken();
+      const res = await fetch(`${AuthService.getApiBase()}/conversations/direct`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ peerId: peer.id })
+      });
+      const data = await res.json();
+      if (data.conversation) {
+        setConversations(prev => {
+          if (prev.some(c => c.id === data.conversation.id)) return prev;
+          return [data.conversation, ...prev];
+        });
+        setActiveConversation(data.conversation);
+      }
+    } catch (err) {
+      console.error('Error opening chat with call peer:', err);
     }
   };
 
@@ -837,11 +869,23 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* ACTIVE CALL MODAL OVERLAY */}
-      {activeCall && (
+      {/* ACTIVE CALL MODAL OVERLAY (FULLSCREEN) */}
+      {activeCall && !isCallMinimized && (
         <CallModal
           activeCall={activeCall}
           onEndCall={handleEndActiveCall}
+          onMinimize={() => setIsCallMinimized(true)}
+          onOpenChat={handleOpenChatWithCallPeer}
+        />
+      )}
+
+      {/* FLOATING PICTURE-IN-PICTURE MINI CALL WINDOW (WHATSAPP/TELEGRAM STYLE) */}
+      {activeCall && isCallMinimized && (
+        <FloatingCallPiP
+          activeCall={activeCall}
+          onMaximize={() => setIsCallMinimized(false)}
+          onEndCall={handleEndActiveCall}
+          onOpenChat={handleOpenChatWithCallPeer}
         />
       )}
 

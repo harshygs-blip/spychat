@@ -8,19 +8,27 @@ import {
   SwitchCamera, 
   Volume2, 
   Lock,
-  Wifi
+  Wifi,
+  ChevronDown,
+  MessageSquare,
+  PictureInPicture,
+  Minimize2
 } from 'lucide-react';
-import { ActiveCall } from '../../types';
+import { ActiveCall, User } from '../../types';
 import { webrtcService } from '../../services/webrtc';
 
 interface CallModalProps {
   activeCall: ActiveCall;
   onEndCall: () => void;
+  onMinimize?: () => void;
+  onOpenChat?: (user: User) => void;
 }
 
 export const CallModal: React.FC<CallModalProps> = ({
   activeCall,
-  onEndCall
+  onEndCall,
+  onMinimize,
+  onOpenChat
 }) => {
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -124,6 +132,20 @@ export const CallModal: React.FC<CallModalProps> = ({
     }
   };
 
+  const handleNativePiP = async () => {
+    if (remoteVideoRef.current && document.pictureInPictureEnabled) {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          await remoteVideoRef.current.requestPictureInPicture();
+        }
+      } catch (err) {
+        console.warn('Native PiP Error:', err);
+      }
+    }
+  };
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -143,6 +165,64 @@ export const CallModal: React.FC<CallModalProps> = ({
     }}>
       {/* Hidden audio element for WebRTC audio track */}
       <audio ref={remoteAudioRef} autoPlay playsInline />
+
+      {/* TOP FLOATING ACTION BAR: MINIMIZE (PIP) & NATIVE PIP */}
+      <div style={{
+        position: 'absolute',
+        top: '16px',
+        left: '16px',
+        right: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        zIndex: 35
+      }}>
+        {/* Minimize into Floating PiP Button */}
+        <button
+          onClick={onMinimize}
+          style={{
+            background: 'rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            borderRadius: '16px',
+            width: '42px',
+            height: '42px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)'
+          }}
+          title="Minimize & Chat (PiP)"
+        >
+          <ChevronDown size={24} />
+        </button>
+
+        {/* Pop-out to OS Native Floating Video (PiP) */}
+        {callType === 'video' && document.pictureInPictureEnabled && (
+          <button
+            onClick={handleNativePiP}
+            style={{
+              background: 'rgba(255, 255, 255, 0.15)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: '16px',
+              width: '42px',
+              height: '42px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)'
+            }}
+            title="Pop-out Floating Window (OS PiP)"
+          >
+            <PictureInPicture size={20} />
+          </button>
+        )}
+      </div>
 
       {/* VIDEO CONTAINER (If video call) */}
       {callType === 'video' ? (
@@ -413,6 +493,27 @@ export const CallModal: React.FC<CallModalProps> = ({
             <SwitchCamera size={22} />
           </button>
         )}
+
+        {/* Quick In-Call Chat Button */}
+        <button
+          onClick={() => onOpenChat?.(peerUser)}
+          title="Chat while on Call"
+          style={{
+            width: '54px',
+            height: '54px',
+            borderRadius: '50%',
+            background: 'rgba(59, 130, 246, 0.3)',
+            border: '1px solid rgba(59, 130, 246, 0.6)',
+            color: '#60a5fa',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
+          }}
+        >
+          <MessageSquare size={22} />
+        </button>
 
         {/* END CALL BUTTON */}
         <button
