@@ -3,6 +3,7 @@ package com.spychat.app;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.WindowManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import androidx.core.app.ActivityCompat;
@@ -17,6 +18,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Enforce Android FLAG_SECURE: Blocks screenshots, screen recorders (blank black screen), and recent apps switcher leaks
+        getWindow().setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        );
         super.onCreate(savedInstanceState);
         requestCallingPermissions();
     }
