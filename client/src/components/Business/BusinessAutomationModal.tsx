@@ -31,13 +31,13 @@ export const BusinessAutomationModal: React.FC<BusinessAutomationProps> = ({
   const [subTab, setSubTab] = useState<'bot' | 'catalog'>('bot');
 
   const auto = currentUser.business_automation || {
-    greeting_enabled: true,
+    greeting_enabled: false,
     greeting_message: '👋 Welcome to my secure channel! How can I assist you today?',
     greeting_type: 'text',
-    away_enabled: true,
+    away_enabled: false,
     away_message: '🌙 I am currently offline. Your encrypted message has been received and I will get back to you shortly.',
     away_type: 'text',
-    auto_replies_enabled: true,
+    auto_replies_enabled: false,
     auto_reply_rules: [
       { trigger: 'price', response: '💰 Our packages start from $49/mo.', message_type: 'text' },
       { trigger: 'info', response: '🛡️ SPYCHAT provides zero-leakage encrypted communications.', message_type: 'text' }
@@ -172,8 +172,17 @@ export const BusinessAutomationModal: React.FC<BusinessAutomationProps> = ({
     }
   };
 
+  const isAnyActive = greetingEnabled || awayEnabled || autoRepliesEnabled;
+
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px' }}>
+    <div style={{
+      flex: 1,
+      height: '100%',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      padding: '16px 14px 130px 14px',
+      touchAction: 'pan-y'
+    }}>
       {/* Hidden File Picker */}
       <input
         type="file"
@@ -184,6 +193,30 @@ export const BusinessAutomationModal: React.FC<BusinessAutomationProps> = ({
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Master Status Card */}
+        <div style={{
+          padding: '12px 14px',
+          borderRadius: '16px',
+          background: isAnyActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.04)',
+          border: isAnyActive ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-color)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <div style={{
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            background: isAnyActive ? '#10b981' : '#64748b',
+            boxShadow: isAnyActive ? '0 0 10px #10b981' : 'none'
+          }} />
+          <div style={{ fontSize: '12.5px', color: isAnyActive ? '#34d399' : 'var(--text-secondary)', fontWeight: '600' }}>
+            {isAnyActive 
+              ? 'Business Automation is ACTIVE (auto-responses enabled)' 
+              : 'Business Automation is OFF by default. Turn ON any switch below to activate.'}
+          </div>
+        </div>
+
         {/* Sub-Tab Navigation Switcher */}
         <div style={{
           display: 'flex',

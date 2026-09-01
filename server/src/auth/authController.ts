@@ -83,13 +83,13 @@ export async function signup(req: Request, res: Response): Promise<void> {
         typing_indicator: true
       },
       business_automation: {
-        greeting_enabled: true,
+        greeting_enabled: false,
         greeting_message: '👋 Welcome to my secure channel! How can I assist you today?',
         greeting_type: 'text',
-        away_enabled: true,
+        away_enabled: false,
         away_message: '🌙 I am currently offline. Your encrypted message has been received.',
         away_type: 'text',
-        auto_replies_enabled: true,
+        auto_replies_enabled: false,
         auto_reply_rules: [
           { trigger: 'price', response: '💰 Our packages start from $49/mo.', message_type: 'text' },
           { trigger: 'info', response: '🛡️ SPYCHAT provides zero-leakage encrypted communications.', message_type: 'text' },
