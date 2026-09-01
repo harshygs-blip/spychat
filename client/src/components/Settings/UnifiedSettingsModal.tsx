@@ -305,17 +305,21 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'main') {
     return (
-      <div style={{
-        flex: 1,
-        height: '100%',
-        overflowY: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        padding: '16px 14px 130px 14px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '14px',
-        touchAction: 'pan-y'
-      }}>
+      <div
+        className="custom-scrollbar smooth-scroll-panel"
+        style={{
+          flex: 1,
+          height: '100%',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          padding: '16px 14px 170px 14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          touchAction: 'pan-y',
+          overscrollBehaviorY: 'contain'
+        }}
+      >
         {/* User Profile Header Card */}
         <div
           onClick={() => setCurrentPage('profile')}

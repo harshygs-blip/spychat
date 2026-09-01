@@ -826,16 +826,22 @@ export const App: React.FC = () => {
         </div>
 
         {/* Panel 5: Settings */}
-        <div style={{
-          width: '100%',
-          minWidth: '100%',
-          maxWidth: '100%',
-          height: '100%',
-          scrollSnapAlign: 'start',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        <div
+          className="smooth-scroll-panel"
+          style={{
+            width: '100%',
+            minWidth: '100%',
+            maxWidth: '100%',
+            height: '100%',
+            scrollSnapAlign: 'start',
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehaviorY: 'contain',
+            touchAction: 'pan-y'
+          }}
+        >
           <UnifiedSettingsModal
             currentUser={currentUser}
             currentTheme={currentTheme}
