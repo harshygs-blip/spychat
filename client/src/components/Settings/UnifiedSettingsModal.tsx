@@ -305,7 +305,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'main') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{
+        flex: 1,
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: '16px 14px 130px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        touchAction: 'pan-y'
+      }}>
         {/* User Profile Header Card */}
         <div
           onClick={() => setCurrentPage('profile')}
@@ -743,7 +753,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'profile') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{
+        flex: 1,
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: '16px 14px 130px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        touchAction: 'pan-y'
+      }}>
         <SubHeader title="Edit Profile" subtitle="Manage your public handle and display identity" />
 
         <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -940,7 +960,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'theme') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{
+        flex: 1,
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: '16px 14px 130px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        touchAction: 'pan-y'
+      }}>
         <SubHeader title="Theme & Appearance" subtitle="Select your preferred color palette" />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1014,7 +1044,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'privacy') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{
+        flex: 1,
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: '16px 14px 130px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        touchAction: 'pan-y'
+      }}>
         <SubHeader title="Privacy & Stealth" subtitle="Control visibility, read receipts and status" />
 
         <div className="glass" style={{ padding: '18px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1099,7 +1139,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'security') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{
+        flex: 1,
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: '16px 14px 130px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        touchAction: 'pan-y'
+      }}>
         <SubHeader title="4-Digit Passcode Lock" subtitle="Protect chat database with local PIN encryption" />
 
         <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1181,7 +1231,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'vault') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{
+        flex: 1,
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: '16px 14px 130px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        touchAction: 'pan-y'
+      }}>
         <SubHeader title="Saved Messages Vault" subtitle="Your bookmarked personal encrypted notes" />
 
         {savedMessages.length === 0 ? (
@@ -1253,7 +1313,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'backup') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{
+        flex: 1,
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: '16px 14px 130px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        touchAction: 'pan-y'
+      }}>
         <SubHeader title="Encrypted Backup" subtitle="Download and restore chat data locally" />
 
         <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1296,7 +1366,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // ==========================================
   if (currentPage === 'notifications') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{
+        flex: 1,
+        height: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: '16px 14px 130px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        touchAction: 'pan-y'
+      }}>
         <SubHeader title="Notifications & Sounds" subtitle="Calling ringtone and alert configuration" />
 
         <div className="glass" style={{ padding: '18px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1334,7 +1414,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   // 9. ABOUT SUBPAGE
   // ==========================================
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{
+      flex: 1,
+      height: '100%',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      padding: '16px 14px 130px 14px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '16px',
+      touchAction: 'pan-y'
+    }}>
       <SubHeader title="About SPYCHAT" subtitle="End-to-End Encrypted Zero-Knowledge Messenger" />
 
       <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
