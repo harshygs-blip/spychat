@@ -100,6 +100,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   // View Once & Round Video & Saved Messages
   const [viewOnceModalMsg, setViewOnceModalMsg] = useState<Message | null>(null);
+  const [viewOnceCountdown, setViewOnceCountdown] = useState<number>(6);
+  const viewOnceModalMsgRef = useRef<Message | null>(null);
+  viewOnceModalMsgRef.current = viewOnceModalMsg;
   const [isViewOnceSend, setIsViewOnceSend] = useState(false);
   const [inputVoiceOrVideo, setInputVoiceOrVideo] = useState<'mic' | 'round_video'>('mic');
   const [isRecordingRoundVideo, setIsRecordingRoundVideo] = useState(false);
@@ -798,15 +801,47 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   const handleCloseViewOnce = () => {
-    if (viewOnceModalMsg) {
+    const currentMsg = viewOnceModalMsgRef.current;
+    if (currentMsg) {
       socketService.emit('consume_view_once', {
-        messageId: viewOnceModalMsg.id,
+        messageId: currentMsg.id,
         conversationId: conversation.id
       });
-      setMessages(prev => prev.map(m => m.id === viewOnceModalMsg.id ? { ...m, media_url: undefined, viewed_by: [...(m.viewed_by || []), currentUser.id] } : m));
+      setMessages(prev => prev.map(m => m.id === currentMsg.id ? { ...m, media_url: undefined, viewed_by: [...(m.viewed_by || []), currentUser.id] } : m));
       setViewOnceModalMsg(null);
     }
   };
+
+  // Auto-Destruct Countdown Timer for 1x View Once Photo/Video (Snapchat/WhatsApp Style)
+  useEffect(() => {
+    if (!viewOnceModalMsg) return;
+
+    setViewOnceCountdown(6); // 6 seconds automatic self-destruct limit
+
+    const timer = setInterval(() => {
+      setViewOnceCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // Auto destroy when countdown reaches 0
+          const currentMsg = viewOnceModalMsgRef.current;
+          if (currentMsg) {
+            socketService.emit('consume_view_once', {
+              messageId: currentMsg.id,
+              conversationId: conversation.id
+            });
+            setMessages(prevMsgs => prevMsgs.map(m => m.id === currentMsg.id ? { ...m, media_url: undefined, viewed_by: [...(m.viewed_by || []), currentUser.id] } : m));
+            setViewOnceModalMsg(null);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [viewOnceModalMsg, conversation.id, currentUser.id]);
 
   // --- LOCATION SHARING ---
   const handleSendLocation = () => {
@@ -2760,7 +2795,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
       )}
 
-      {/* 4. VIEW ONCE FULLSCREEN MODAL */}
+      {/* 4. VIEW ONCE FULLSCREEN MODAL (WITH LIVE COUNTDOWN TIMER & AUTO-DESTRUCT) */}
       {viewOnceModalMsg && (
         <div style={{
           position: 'fixed',
@@ -2771,38 +2806,99 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '16px'
+          padding: '16px',
+          userSelect: 'none'
         }}>
-          {/* Top Bar */}
+          {/* Top Live Shrinking Progress Bar */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '5px',
+            background: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%)',
+            width: `${Math.max(0, (viewOnceCountdown / 6) * 100)}%`,
+            transition: 'width 1s linear',
+            zIndex: 520,
+            boxShadow: '0 0 10px rgba(239, 68, 68, 0.8)'
+          }} />
+
+          {/* Top Bar Header */}
           <div style={{
             position: 'absolute',
             top: '20px',
-            left: '20px',
-            right: '20px',
+            left: '16px',
+            right: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             zIndex: 510
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', fontWeight: '800' }}>
-              <Eye size={20} />
-              <span>1x View Once Photo (Destroying after close)</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'rgba(239, 68, 68, 0.25)',
+              border: '1.5px solid var(--accent-danger)',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              color: '#ffffff',
+              fontWeight: '800',
+              fontSize: '13px',
+              boxShadow: '0 0 15px rgba(239, 68, 68, 0.5)'
+            }}>
+              <Flame size={18} color="#f87171" className="animate-pulse" />
+              <span>Self-Destruct in {viewOnceCountdown}s</span>
             </div>
 
             <button
               onClick={handleCloseViewOnce}
-              className="btn-primary"
-              style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '12px' }}
+              className="btn-danger"
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                borderRadius: '16px',
+                fontWeight: '800',
+                boxShadow: '0 4px 20px rgba(239, 68, 68, 0.6)'
+              }}
             >
-              Close & Destroy 💥
+              Destroy Now 💥
             </button>
           </div>
 
-          <img
-            src={viewOnceModalMsg.media_url}
-            alt="View Once Photo"
-            style={{ maxWidth: '96%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '16px' }}
-          />
+          {/* Media Content (Image or Video) */}
+          {viewOnceModalMsg.message_type === 'video' ? (
+            <video
+              src={viewOnceModalMsg.media_url}
+              autoPlay
+              controls
+              playsInline
+              style={{ maxWidth: '96%', maxHeight: '78vh', objectFit: 'contain', borderRadius: '16px' }}
+            />
+          ) : (
+            <img
+              src={viewOnceModalMsg.media_url}
+              alt="View Once Photo"
+              style={{ maxWidth: '96%', maxHeight: '78vh', objectFit: 'contain', borderRadius: '16px' }}
+            />
+          )}
+
+          {/* Bottom Security Note */}
+          <div style={{
+            position: 'absolute',
+            bottom: '24px',
+            fontSize: '11.5px',
+            color: 'rgba(255, 255, 255, 0.6)',
+            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(0, 0, 0, 0.6)',
+            padding: '6px 14px',
+            borderRadius: '20px'
+          }}>
+            <Lock size={12} color="var(--accent-primary)" />
+            <span>Encrypted 1x view. Will vanish permanently from all servers & devices.</span>
+          </div>
         </div>
       )}
 
