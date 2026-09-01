@@ -20,6 +20,13 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
     let isCurrent = true;
     const cleanQuery = query.replace(/^@+/, '').trim();
 
+    // Do NOT show suggestions or search when query is less than 3 characters
+    if (cleanQuery.length < 3) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchUsers = async () => {
       setLoading(true);
       try {
@@ -36,7 +43,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
 
     const timer = setTimeout(() => {
       fetchUsers();
-    }, 60);
+    }, 150);
 
     return () => {
       isCurrent = false;
@@ -57,9 +64,12 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
       zIndex: 100,
       animation: 'slideDownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
-      {/* Top Search Header */}
+      {/* Top Search Header (with S24 Ultra & Notch Safe Padding) */}
       <div className="glass" style={{
-        padding: '14px 16px',
+        paddingTop: 'max(46px, calc(env(safe-area-inset-top, 0px) + 12px))',
+        paddingBottom: '14px',
+        paddingLeft: '16px',
+        paddingRight: '16px',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
@@ -78,7 +88,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            placeholder="Type exact @username (e.g. @mrharsh)..."
+            placeholder="Type at least 3 letters of @username..."
             className="spychat-input"
             style={{ paddingLeft: '38px', paddingRight: query ? '36px' : '14px', width: '100%' }}
             value={query}
@@ -132,7 +142,57 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
         flexDirection: 'column',
         gap: '10px'
       }}>
-        {loading ? (
+        {cleanQuery.length < 3 ? (
+          /* --- PRIVATE ZERO-SUGGESTION DEFAULT STATE (REQUIRES AT LEAST 3 LETTERS) --- */
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '14px',
+            color: 'var(--text-muted)'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '22px',
+              background: 'rgba(6, 182, 212, 0.12)',
+              border: '1.5px solid rgba(6, 182, 212, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--accent-cyan)',
+              boxShadow: '0 0 25px rgba(6, 182, 212, 0.2)'
+            }}>
+              <Search size={30} />
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff', marginBottom: '4px' }}>
+                Search Contacts
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '280px', margin: '0 auto', lineHeight: '1.5' }}>
+                Type at least <span style={{ color: 'var(--accent-cyan)', fontWeight: '800' }}>3 letters</span> of the @username to find contacts and start chatting.
+              </p>
+            </div>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(255, 255, 255, 0.04)',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '11.5px',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border-color)',
+              marginTop: '4px'
+            }}>
+              <Lock size={12} color="var(--accent-emerald)" /> Zero-Knowledge Privacy Protected
+            </div>
+          </div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
             Searching encrypted network for @{cleanQuery}...
           </div>
@@ -147,7 +207,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
               letterSpacing: '0.5px',
               marginBottom: '4px'
             }}>
-              {cleanQuery ? `Search Results (${results.length})` : `Registered Users (${results.length})`}
+              Search Results ({results.length})
             </div>
 
             {results.map((user) => (
