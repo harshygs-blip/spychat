@@ -558,6 +558,28 @@ class Database {
     return msg;
   }
 
+  public addMessageReaction(messageId: string, userId: string, emoji: string): Message | undefined {
+    const msg = this.data.messages.find(m => m.id === messageId);
+    if (!msg) return undefined;
+
+    if (!msg.reactions) msg.reactions = [];
+    const idx = msg.reactions.findIndex(r => r.user_id === userId);
+    if (idx !== -1) {
+      if (msg.reactions[idx].emoji === emoji) {
+        // Toggle off if same emoji tapped
+        msg.reactions.splice(idx, 1);
+      } else {
+        // Switch emoji
+        msg.reactions[idx].emoji = emoji;
+      }
+    } else {
+      msg.reactions.push({ user_id: userId, emoji });
+    }
+
+    this.save();
+    return msg;
+  }
+
   public markMessagesAsRead(conversationId: string, readerUserId: string): void {
     let changed = false;
     this.data.messages.forEach(m => {

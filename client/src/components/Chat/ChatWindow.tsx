@@ -47,7 +47,7 @@ interface ChatWindowProps {
   onStartCall: (peer: User, callType: 'audio' | 'video') => void;
 }
 
-const EMOJI_REACTIONS = ['❤️', '👍', '😂', '🔥', '😮', '👏'];
+const EMOJI_REACTIONS = ['❤️', '👍', '🔥', '😂', '😮', '😢', '🙏', '🎉', '💯', '👏'];
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
   conversation,
@@ -1216,25 +1216,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       style={{
                         position: 'fixed',
                         inset: 0,
-                        zIndex: 65
+                        zIndex: 9998,
+                        background: 'transparent'
                       }}
                     />
 
                     <div className="glass" style={{
-                      position: 'absolute',
-                      top: '46px',
-                      right: '0',
-                      width: '215px',
+                      position: 'fixed',
+                      top: '56px',
+                      right: '12px',
+                      width: '225px',
                       borderRadius: '18px',
                       padding: '8px',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '4px',
-                      boxShadow: '0 15px 45px rgba(0,0,0,0.9), 0 0 20px rgba(6, 182, 212, 0.2)',
-                      border: '1px solid rgba(6, 182, 212, 0.3)',
-                      zIndex: 75,
-                      background: 'rgba(10, 16, 32, 0.96)',
-                      backdropFilter: 'blur(25px)'
+                      boxShadow: '0 20px 60px rgba(0,0,0,0.95), 0 0 25px rgba(6, 182, 212, 0.3)',
+                      border: '1.5px solid rgba(6, 182, 212, 0.4)',
+                      zIndex: 9999,
+                      background: 'rgba(10, 16, 32, 0.98)',
+                      backdropFilter: 'blur(30px)',
+                      animation: 'scaleUpFade 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}>
                       {/* View Contact Info */}
                       <button
@@ -1899,105 +1901,218 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* SELECTED MESSAGE ACTIONS / REACTION BAR */}
+      {/* SELECTED MESSAGE ACTIONS / REACTION BAR (WhatsApp / Telegram Floating Style) */}
       {selectedMessage && (
-        <div className="glass" style={{
-          position: 'absolute',
-          bottom: '72px',
-          left: '16px',
-          right: '16px',
-          borderRadius: '18px',
-          padding: '10px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          border: '1px solid var(--accent-cyan)',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-          zIndex: 60
-        }}>
-          {/* Reaction Emojis */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {EMOJI_REACTIONS.map(emoji => (
-              <button
-                key={emoji}
-                onClick={() => handleReact(selectedMessage, emoji)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  padding: '2px'
-                }}
-              >
-                {emoji}
-              </button>
-            ))}
+        <>
+          {/* Backdrop to dismiss on outside click */}
+          <div
+            onClick={() => setSelectedMessage(null)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9990,
+              background: 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(2px)'
+            }}
+          />
+
+          <div className="glass" style={{
+            position: 'fixed',
+            bottom: '76px',
+            left: '12px',
+            right: '12px',
+            maxWidth: '480px',
+            margin: '0 auto',
+            borderRadius: '22px',
+            padding: '12px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            border: '1.5px solid rgba(6, 182, 212, 0.4)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 25px rgba(6, 182, 212, 0.3)',
+            zIndex: 9991,
+            background: 'rgba(12, 19, 36, 0.98)',
+            backdropFilter: 'blur(25px)',
+            animation: 'scaleUpFade 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            {/* Reaction Emojis Row (Horizontal Scrollable) */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              padding: '2px 4px 6px 4px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              {EMOJI_REACTIONS.map(emoji => (
+                <button
+                  key={emoji}
+                  onClick={() => handleReact(selectedMessage, emoji)}
+                  style={{
+                    background: selectedMessage.reactions?.some(r => r.user_id === currentUser.id && r.emoji === emoji)
+                      ? 'rgba(6, 182, 212, 0.3)'
+                      : 'rgba(255, 255, 255, 0.06)',
+                    border: selectedMessage.reactions?.some(r => r.user_id === currentUser.id && r.emoji === emoji)
+                      ? '1.5px solid var(--accent-cyan)'
+                      : '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px',
+                    fontSize: '22px',
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    transition: 'transform 0.15s ease',
+                    boxShadow: selectedMessage.reactions?.some(r => r.user_id === currentUser.id && r.emoji === emoji)
+                      ? '0 0 10px rgba(6, 182, 212, 0.5)'
+                      : 'none'
+                  }}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(1.25)')}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            {/* Quick Actions Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {/* Reply Button ↩️ */}
+                <button
+                  onClick={() => {
+                    setReplyTargetMsg(selectedMessage);
+                    setSelectedMessage(null);
+                  }}
+                  title="Reply to Message"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--accent-primary)',
+                    padding: '6px 10px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                  }}
+                >
+                  <Reply size={15} /> Reply
+                </button>
+
+                {selectedMessage.sender_id === currentUser.id && selectedMessage.message_type === 'text' && (
+                  <button
+                    onClick={() => handleStartEdit(selectedMessage)}
+                    title="Edit Message"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--accent-cyan)',
+                      padding: '6px 10px',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '12px',
+                      fontWeight: '700'
+                    }}
+                  >
+                    <Edit2 size={15} /> Edit
+                  </button>
+                )}
+
+                {/* Star / Save to Vault button */}
+                <button
+                  onClick={() => {
+                    socketService.emit('toggle_save_message', { messageId: selectedMessage.id }, (res: any) => {
+                      alert(res?.isSaved ? '⭐ Message Saved to Vault!' : 'Removed from Vault');
+                      setSelectedMessage(null);
+                    });
+                  }}
+                  title="Save to Vault"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid var(--border-color)',
+                    color: '#eab308',
+                    padding: '6px 10px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                  }}
+                >
+                  <Star size={15} /> Vault
+                </button>
+
+                {/* Translate Button 🌐 */}
+                <button
+                  onClick={() => setTranslateTargetMsg(selectedMessage)}
+                  title="Translate Message"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid var(--border-color)',
+                    color: '#10b981',
+                    padding: '6px 10px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                  }}
+                >
+                  <Languages size={15} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {/* Delete Message Button 🗑️ */}
+                <button
+                  onClick={() => handleOpenDeleteMessage(selectedMessage)}
+                  title="Delete Message"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#f87171',
+                    padding: '6px 10px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                  }}
+                >
+                  <Trash2 size={15} /> Delete
+                </button>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setSelectedMessage(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '4px'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
           </div>
-
-          {/* Edit / Delete / Close Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Reply Button ↩️ */}
-            <button
-              onClick={() => {
-                setReplyTargetMsg(selectedMessage);
-                setSelectedMessage(null);
-              }}
-              title="Reply to Message"
-              style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '6px' }}
-            >
-              <Reply size={17} />
-            </button>
-
-            {selectedMessage.sender_id === currentUser.id && selectedMessage.message_type === 'text' && (
-              <button
-                onClick={() => handleStartEdit(selectedMessage)}
-                title="Edit Message"
-                style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', cursor: 'pointer', padding: '6px' }}
-              >
-                <Edit2 size={17} />
-              </button>
-            )}
-
-            {/* Star / Save to Vault button */}
-            <button
-              onClick={() => {
-                socketService.emit('toggle_save_message', { messageId: selectedMessage.id }, (res: any) => {
-                  alert(res?.isSaved ? '⭐ Message Saved to Vault!' : 'Removed from Vault');
-                  setSelectedMessage(null);
-                });
-              }}
-              title="Save to Vault"
-              style={{ background: 'none', border: 'none', color: '#eab308', cursor: 'pointer', padding: '6px' }}
-            >
-              <Star size={17} />
-            </button>
-
-            {/* Translate Button 🌐 */}
-            <button
-              onClick={() => setTranslateTargetMsg(selectedMessage)}
-              title="Translate Message"
-              style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: '6px' }}
-            >
-              <Languages size={17} />
-            </button>
-
-            {/* Telegram style delete for any message */}
-            <button
-              onClick={() => handleOpenDeleteMessage(selectedMessage)}
-              title="Delete Message (Telegram style)"
-              style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '6px' }}
-            >
-              <Trash2 size={17} />
-            </button>
-
-            <button
-              onClick={() => setSelectedMessage(null)}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px' }}
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
+        </>
       )}
 
       {/* EDIT MESSAGE BAR */}
