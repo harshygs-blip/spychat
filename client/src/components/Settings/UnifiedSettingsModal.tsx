@@ -879,7 +879,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         </div>
 
         {/* LOGOUT BUTTON */}
-        <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+        <div style={{ paddingTop: '10px', paddingBottom: '30px' }}>
           {confirmLogout ? (
             <div className="glass" style={{
               padding: '14px',
