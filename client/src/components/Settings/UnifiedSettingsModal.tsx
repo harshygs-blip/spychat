@@ -23,7 +23,8 @@ import {
   FileText,
   Trash2,
   Camera,
-  Image
+  Image,
+  Shield
 } from 'lucide-react';
 import { User as UserType, Message } from '../../types';
 import { AuthService } from '../../services/auth';
@@ -351,7 +352,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   );
 
   // ==========================================
-  // 1. MAIN SETTINGS LIST PAGE
+  // 1. MAIN SETTINGS LIST PAGE (REDESIGNED LUXURY VIP HUB)
   // ==========================================
   if (currentPage === 'main') {
     return (
@@ -359,107 +360,50 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         className="custom-scrollbar smooth-scroll-panel"
         style={{
           flex: 1,
+          width: '100%',
           height: '100%',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
-          padding: '16px 14px 220px 14px',
+          padding: '16px 14px 180px 14px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px',
-          touchAction: 'pan-y pan-x',
-          overscrollBehaviorY: 'contain'
+          gap: '16px',
+          boxSizing: 'border-box'
         }}
       >
-        {/* QUICK CATEGORY HORIZONTAL SLIDER */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            paddingBottom: '2px',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
-          }}
-        >
-          {[
-            { id: 'profile', label: 'Profile', icon: User, color: '#38bdf8' },
-            { id: 'theme', label: 'Theme', icon: Palette, color: '#00e676' },
-            { id: 'privacy', label: 'Privacy', icon: ShieldCheck, color: '#10b981' },
-            { id: 'security', label: 'App Lock', icon: Lock, color: '#06b6d4' },
-            { id: 'vault', label: 'Vault', icon: Star, color: '#f59e0b' },
-            { id: 'business', label: 'Business', icon: Bot, color: '#a855f7' },
-            { id: 'backup', label: 'Backup', icon: Download, color: '#ec4899' },
-            { id: 'notifications', label: 'Sounds', icon: Bell, color: '#eab308' },
-            { id: 'about', label: 'About', icon: Info, color: '#94a3b8' }
-          ].map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.id === 'business') {
-                    onNavigateToBusiness();
-                  } else {
-                    setCurrentPage(item.id as SettingsSubPage);
-                  }
-                }}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '14px',
-                  padding: '8px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: '#ffffff',
-                  fontSize: '12.5px',
-                  fontWeight: '700',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <Icon size={15} color={item.color} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* User Profile Header Card */}
+        {/* HERO VIP PROFILE BANNER */}
         <div
           onClick={() => setCurrentPage('profile')}
           className="glass"
           style={{
-            padding: '16px',
-            borderRadius: '20px',
+            padding: '18px 16px',
+            borderRadius: '24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)',
-            border: '1px solid var(--border-color-glow)',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.12) 100%)',
+            border: '1.5px solid var(--border-color-glow)',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(6, 182, 212, 0.15)',
             cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Avatar */}
             <div style={{
-              width: '54px',
-              height: '54px',
+              position: 'relative',
+              width: '60px',
+              height: '60px',
               borderRadius: '50%',
               background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-              border: '2px solid var(--accent-primary)',
+              border: '2.5px solid var(--accent-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: '800',
-              fontSize: '20px',
+              fontSize: '22px',
               color: 'var(--accent-primary)',
-              boxShadow: '0 0 15px var(--accent-primary-glow)',
+              boxShadow: '0 0 20px var(--accent-primary-glow)',
               overflow: 'hidden'
             }}>
               {currentUser.avatar_url ? (
@@ -472,434 +416,478 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
                 currentUser.display_name.substring(0, 2).toUpperCase()
               )}
             </div>
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>
-                {currentUser.display_name}
-              </h3>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                @{currentUser.username} • <span style={{ color: 'var(--accent-primary)' }}>Tap to edit</span>
+
+            {/* User Info */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#ffffff', letterSpacing: '0.2px' }}>
+                  {currentUser.display_name}
+                </h3>
+                <span style={{
+                  fontSize: '9.5px',
+                  fontWeight: '800',
+                  padding: '2px 6px',
+                  borderRadius: '6px',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  color: 'var(--accent-emerald)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)'
+                }}>
+                  ONLINE
+                </span>
+              </div>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                @{currentUser.username}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                <Shield size={12} /> <span>E2EE 256-Bit Protected</span>
               </div>
             </div>
           </div>
-          <ChevronRight size={20} color="var(--text-muted)" />
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            padding: '8px 12px',
+            borderRadius: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            fontSize: '12px',
+            fontWeight: '700',
+            color: 'var(--accent-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            Edit ➔
+          </div>
         </div>
 
-        {/* SETTINGS MENU LIST */}
-        <div className="glass" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-          {/* 1. Theme & Appearance */}
-          <div
-            onClick={() => setCurrentPage('theme')}
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--border-color)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #00e676 0%, #38bdf8 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#000'
-              }}>
-                <Palette size={19} />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Theme & Colors</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Cyber Green, Electric Blue & OLED</div>
-              </div>
-            </div>
-            <ChevronRight size={18} color="var(--text-muted)" />
-          </div>
-
-          {/* 2. Privacy & Stealth */}
-          <div
-            onClick={() => setCurrentPage('privacy')}
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--border-color)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(16, 185, 129, 0.2)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--accent-emerald)'
-              }}>
-                <ShieldCheck size={19} />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Privacy & Stealth</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Last seen, read receipts, visibility</div>
-              </div>
-            </div>
-            <ChevronRight size={18} color="var(--text-muted)" />
-          </div>
-
-          {/* 3. Passcode Vault */}
-          <div
-            onClick={() => setCurrentPage('security')}
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--border-color)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(6, 182, 212, 0.2)',
-                border: '1px solid rgba(6, 182, 212, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--accent-cyan)'
-              }}>
-                <KeyRound size={19} />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>4-Digit Passcode Lock</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  {currentUser.app_pin ? '🔒 Passcode Active' : 'Configure App PIN'}
-                </div>
-              </div>
-            </div>
-            <ChevronRight size={18} color="var(--text-muted)" />
-          </div>
-
-          {/* 4. Saved Messages Cloud Vault ⭐ */}
-          <div
-            onClick={() => setCurrentPage('vault')}
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--border-color)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(234, 179, 8, 0.2)',
-                border: '1px solid rgba(234, 179, 8, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#eab308'
-              }}>
-                <Star size={19} />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Saved Messages Vault</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Personal bookmarked notes & files</div>
-              </div>
-            </div>
-            <ChevronRight size={18} color="var(--text-muted)" />
-          </div>
-
-          {/* 5. Business & Automation */}
-          <div
-            onClick={onNavigateToBusiness}
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--border-color)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(139, 92, 246, 0.2)',
-                border: '1px solid rgba(139, 92, 246, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#a855f7'
-              }}>
-                <Bot size={19} />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Business Automation</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Auto-reply, away, greetings & catalog</div>
-              </div>
-            </div>
-            <ChevronRight size={18} color="var(--text-muted)" />
-          </div>
-
-          {/* 6. Export Encrypted Backup 💾 */}
-          <div
-            onClick={() => setCurrentPage('backup')}
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--border-color)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(59, 130, 246, 0.2)',
-                border: '1px solid rgba(59, 130, 246, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#3b82f6'
-              }}>
-                <Download size={19} />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Backup & Export</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Download offline encrypted vault</div>
-              </div>
-            </div>
-            <ChevronRight size={18} color="var(--text-muted)" />
-          </div>
-
-          {/* 7. Notifications & Sounds */}
-          <div
-            onClick={() => setCurrentPage('notifications')}
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--border-color)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(234, 179, 8, 0.2)',
-                border: '1px solid rgba(234, 179, 8, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#eab308'
-              }}>
-                <Bell size={19} />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Notifications & Sounds</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Dual-tone ringtone & call alerts</div>
-              </div>
-            </div>
-            <ChevronRight size={18} color="var(--text-muted)" />
-          </div>
-
-          {/* 8. About SPYCHAT */}
-          <div
-            onClick={() => setCurrentPage('about')}
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid var(--border-color)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-primary)'
-              }}>
-                <Info size={19} />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>About SPYCHAT E2EE</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Zero-knowledge architecture & keys</div>
-              </div>
-            </div>
-            <ChevronRight size={18} color="var(--text-muted)" />
-          </div>
-
-          {/* 9. Share & Download App APK 📲 */}
-          {onOpenShareApp && (
+        {/* SECTION 1: 🔒 SECURITY & PRIVACY */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', paddingLeft: '4px' }}>
+            Security & Privacy
+          </span>
+          <div className="glass" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+            {/* Privacy & Stealth */}
             <div
-              onClick={() => {
-                localStorage.setItem('spychat_seen_build_version', APP_VERSION);
-                onOpenShareApp();
-              }}
+              onClick={() => setCurrentPage('privacy')}
               style={{
                 padding: '14px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
-                borderTop: '1px solid var(--border-color)',
-                background: 'rgba(6, 182, 212, 0.08)'
+                borderBottom: '1px solid var(--border-color)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ position: 'relative' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-emerald)'
+                }}>
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Privacy & Stealth</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Last seen, read receipts, online visibility</div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
+            </div>
+
+            {/* Passcode Lock */}
+            <div
+              onClick={() => setCurrentPage('security')}
+              style={{
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  border: '1px solid rgba(6, 182, 212, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-cyan)'
+                }}>
+                  <KeyRound size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>4-Digit Passcode Lock</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    {currentUser.app_pin ? '🔒 Passcode Active' : 'Configure App PIN Vault'}
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 2: 🎨 CUSTOMIZATION & SOUNDS */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', paddingLeft: '4px' }}>
+            Customization & Vault
+          </span>
+          <div className="glass" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+            {/* Theme & Colors */}
+            <div
+              onClick={() => setCurrentPage('theme')}
+              style={{
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                borderBottom: '1px solid var(--border-color)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(0, 230, 118, 0.2) 0%, rgba(56, 189, 248, 0.2) 100%)',
+                  border: '1px solid rgba(0, 230, 118, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-primary)'
+                }}>
+                  <Palette size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Theme & Accent Colors</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Cyber Green, Electric Blue & Pure OLED</div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
+            </div>
+
+            {/* Saved Messages Vault */}
+            <div
+              onClick={() => setCurrentPage('vault')}
+              style={{
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                borderBottom: '1px solid var(--border-color)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(234, 179, 8, 0.15)',
+                  border: '1px solid rgba(234, 179, 8, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#eab308'
+                }}>
+                  <Star size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Saved Messages Vault</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Personal bookmarked notes, files & links</div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
+            </div>
+
+            {/* Notifications & Sounds */}
+            <div
+              onClick={() => setCurrentPage('notifications')}
+              style={{
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(236, 72, 153, 0.15)',
+                  border: '1px solid rgba(236, 72, 153, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ec4899'
+                }}>
+                  <Bell size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Notifications & Sounds</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Dual-tone chime, ringtone & call alerts</div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 3: 🤖 AUTOMATION & CLOUD */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', paddingLeft: '4px' }}>
+            Automation & Backup
+          </span>
+          <div className="glass" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+            {/* Business Automation */}
+            <div
+              onClick={onNavigateToBusiness}
+              style={{
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                borderBottom: '1px solid var(--border-color)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(168, 85, 247, 0.15)',
+                  border: '1px solid rgba(168, 85, 247, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#a855f7'
+                }}>
+                  <Bot size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Business Automation</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Auto-reply, away, greetings & catalog</div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
+            </div>
+
+            {/* Backup & Export */}
+            <div
+              onClick={() => setCurrentPage('backup')}
+              style={{
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#3b82f6'
+                }}>
+                  <Download size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>Backup & Export</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Download offline encrypted vault snapshot</div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 4: ℹ️ APP & SYSTEM */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', paddingLeft: '4px' }}>
+            System & About
+          </span>
+          <div className="glass" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+            {/* Share App APK */}
+            {onOpenShareApp && (
+              <div
+                onClick={() => {
+                  localStorage.setItem('spychat_seen_build_version', APP_VERSION);
+                  onOpenShareApp();
+                }}
+                style={{
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  borderBottom: '1px solid var(--border-color)',
+                  background: 'rgba(6, 182, 212, 0.06)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
                     background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
-                    boxShadow: '0 0 14px rgba(6, 182, 212, 0.45)'
+                    boxShadow: '0 0 12px rgba(6, 182, 212, 0.35)'
                   }}>
-                    <Smartphone size={19} />
+                    <Smartphone size={20} />
                   </div>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '-3px',
-                      right: '-3px',
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      background: '#10b981',
-                      border: '2px solid #040711',
-                      boxShadow: '0 0 8px #10b981'
-                    }}
-                    className="animate-pulse"
-                  />
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--accent-cyan)' }}>Share SPYCHAT App (APK)</span>
-                    <span style={{
-                      fontSize: '10px',
-                      fontWeight: '800',
-                      background: 'rgba(16, 185, 129, 0.2)',
-                      border: '1px solid rgba(16, 185, 129, 0.4)',
-                      color: '#34d399',
-                      padding: '1px 6px',
-                      borderRadius: '8px'
-                    }}>
-                      {APP_VERSION}
-                    </span>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--accent-cyan)' }}>Share SPYCHAT App (APK)</span>
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        background: 'rgba(16, 185, 129, 0.2)',
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        color: '#34d399',
+                        padding: '1px 6px',
+                        borderRadius: '8px'
+                      }}>
+                        {APP_VERSION}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Direct APK download & WhatsApp link</div>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Direct APK download & WhatsApp share</div>
                 </div>
+                <ChevronRight size={18} color="var(--accent-cyan)" />
               </div>
-              <ChevronRight size={18} color="var(--accent-cyan)" />
-            </div>
-          )}
+            )}
 
-          {/* 10. Admin Command Center (Website Only - Hidden in Mobile App) 🛡️ */}
-          {onOpenAdminDashboard && !Capacitor.isNativePlatform() && (
+            {/* About SPYCHAT */}
             <div
-              onClick={onOpenAdminDashboard}
+              onClick={() => setCurrentPage('about')}
               style={{
                 padding: '14px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                cursor: 'pointer',
-                borderTop: '1px solid var(--border-color)',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)'
+                cursor: 'pointer'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #06b6d4 100%)',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--border-color)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#ffffff',
-                  boxShadow: '0 0 12px rgba(239, 68, 68, 0.35)'
+                  color: 'var(--text-primary)'
                 }}>
-                  <ShieldCheck size={20} />
+                  <Info size={20} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '800', color: '#ffffff' }}>Admin Command Center</span>
-                    <span style={{
-                      fontSize: '9.5px',
-                      fontWeight: '800',
-                      background: 'rgba(239, 68, 68, 0.25)',
-                      border: '1px solid rgba(239, 68, 68, 0.5)',
-                      color: '#fca5a5',
-                      padding: '1px 6px',
-                      borderRadius: '8px'
-                    }}>
-                      ROOT
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>User management, IP bans, phone blacklist & telemetry</div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff' }}>About SPYCHAT E2EE</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Zero-Knowledge protocol, version & keys</div>
                 </div>
               </div>
               <ChevronRight size={18} color="var(--text-muted)" />
             </div>
-          )}
+
+            {/* Admin Command Center (Web Only) */}
+            {onOpenAdminDashboard && !Capacitor.isNativePlatform() && (
+              <div
+                onClick={onOpenAdminDashboard}
+                style={{
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  borderTop: '1px solid var(--border-color)',
+                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #ef4444 0%, #06b6d4 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff',
+                    boxShadow: '0 0 12px rgba(239, 68, 68, 0.35)'
+                  }}>
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: '#ffffff' }}>Admin Command Center</span>
+                      <span style={{
+                        fontSize: '9.5px',
+                        fontWeight: '800',
+                        background: 'rgba(239, 68, 68, 0.25)',
+                        border: '1px solid rgba(239, 68, 68, 0.5)',
+                        color: '#fca5a5',
+                        padding: '1px 6px',
+                        borderRadius: '8px'
+                      }}>
+                        ROOT
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>User management, IP bans, phone blacklist & telemetry</div>
+                  </div>
+                </div>
+                <ChevronRight size={18} color="var(--text-muted)" />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* LOGOUT BUTTON */}
-        <div style={{ paddingTop: '10px', paddingBottom: '30px' }}>
+        {/* SECTION 5: 🚪 LOGOUT / SESSION */}
+        <div style={{ paddingTop: '8px', paddingBottom: '20px' }}>
           {confirmLogout ? (
             <div className="glass" style={{
-              padding: '14px',
-              borderRadius: '16px',
-              border: '1px solid var(--accent-danger)',
+              padding: '16px',
+              borderRadius: '20px',
+              border: '1.5px solid var(--accent-danger)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '10px',
-              textAlign: 'center'
+              gap: '12px',
+              textAlign: 'center',
+              background: 'rgba(239, 68, 68, 0.1)'
             }}>
-              <span style={{ fontSize: '13px', color: '#ffffff', fontWeight: '700' }}>
-                Are you sure you want to log out?
+              <span style={{ fontSize: '13.5px', color: '#ffffff', fontWeight: '700' }}>
+                Are you sure you want to log out of SPYCHAT?
               </span>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   onClick={() => setConfirmLogout(false)}
                   style={{
                     flex: 1,
-                    padding: '8px',
-                    borderRadius: '10px',
+                    padding: '10px',
+                    borderRadius: '12px',
                     background: 'rgba(255, 255, 255, 0.08)',
                     border: '1px solid var(--border-color)',
                     color: '#fff',
@@ -913,13 +901,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
                   onClick={onLogout}
                   style={{
                     flex: 1,
-                    padding: '8px',
-                    borderRadius: '10px',
+                    padding: '10px',
+                    borderRadius: '12px',
                     background: '#ef4444',
                     border: 'none',
                     color: '#fff',
                     fontWeight: '700',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)'
                   }}
                 >
                   Confirm Logout
@@ -931,21 +920,22 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
               onClick={() => setConfirmLogout(true)}
               style={{
                 width: '100%',
-                background: 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
                 color: '#f87171',
-                padding: '12px',
-                borderRadius: '14px',
+                padding: '14px',
+                borderRadius: '18px',
                 fontWeight: '700',
-                fontSize: '13.5px',
+                fontSize: '14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
             >
-              <LogOut size={16} /> Logout / Clear Session
+              <LogOut size={17} /> Logout / Clear Session
             </button>
           )}
         </div>
