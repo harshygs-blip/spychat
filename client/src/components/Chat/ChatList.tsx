@@ -69,15 +69,17 @@ export const ChatList: React.FC<ChatListProps> = ({
   };
 
   // Touch Swipe Handlers (Left = Delete/Pin, Right = Archive)
-  const handleTouchStart = (id: string, clientX: number) => {
+  const handleTouchStart = (id: string, clientX: number, e?: React.TouchEvent | React.MouseEvent) => {
+    if (e) e.stopPropagation();
     touchStartXRef.current = clientX;
     touchCurrentXRef.current = clientX;
     isDraggingRef.current = true;
     setSwipingId(id);
   };
 
-  const handleTouchMove = (clientX: number) => {
+  const handleTouchMove = (clientX: number, e?: React.TouchEvent | React.MouseEvent) => {
     if (!isDraggingRef.current) return;
+    if (e) e.stopPropagation();
     touchCurrentXRef.current = clientX;
     const diff = clientX - touchStartXRef.current;
     // Cap swipe between -140px and +140px
@@ -85,7 +87,8 @@ export const ChatList: React.FC<ChatListProps> = ({
     setSwipeOffset(clamped);
   };
 
-  const handleTouchEnd = (conv: Conversation) => {
+  const handleTouchEnd = (conv: Conversation, e?: React.TouchEvent | React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
 
@@ -422,12 +425,12 @@ export const ChatList: React.FC<ChatListProps> = ({
                 {/* FOREGROUND SWIPEABLE CARD */}
                 <div
                   onClick={() => onSelectConversation(conv)}
-                  onTouchStart={(e) => handleTouchStart(conv.id, e.touches[0].clientX)}
-                  onTouchMove={(e) => handleTouchMove(e.touches[0].clientX)}
-                  onTouchEnd={() => handleTouchEnd(conv)}
-                  onMouseDown={(e) => handleTouchStart(conv.id, e.clientX)}
-                  onMouseMove={(e) => handleTouchMove(e.clientX)}
-                  onMouseUp={() => handleTouchEnd(conv)}
+                  onTouchStart={(e) => handleTouchStart(conv.id, e.touches[0].clientX, e)}
+                  onTouchMove={(e) => handleTouchMove(e.touches[0].clientX, e)}
+                  onTouchEnd={(e) => handleTouchEnd(conv, e)}
+                  onMouseDown={(e) => handleTouchStart(conv.id, e.clientX, e)}
+                  onMouseMove={(e) => handleTouchMove(e.clientX, e)}
+                  onMouseUp={(e) => handleTouchEnd(conv, e)}
                   className="glass"
                   style={{
                     padding: '12px 14px',
@@ -441,7 +444,8 @@ export const ChatList: React.FC<ChatListProps> = ({
                     position: 'relative',
                     border: isPinned ? '1px solid var(--accent-primary)' : undefined,
                     zIndex: 2,
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    touchAction: 'pan-y'
                   }}
                 >
                   {/* Avatar */}

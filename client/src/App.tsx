@@ -694,7 +694,7 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         onOpenSearch={() => setShowSearch(true)}
         onOpenTheme={() => setShowThemeModal(true)}
-        onOpenSettings={() => setActiveTab('settings')}
+        onOpenSettings={() => handleTabChange('settings')}
         onOpenShareApp={() => setShowShareAppModal(true)}
       />
 
