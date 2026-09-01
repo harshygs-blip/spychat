@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { User as UserType, Message } from '../../types';
 import { AuthService } from '../../services/auth';
+import { CloudinaryService } from '../../services/cloudinary';
 import { socketService } from '../../services/socket';
 import { ThemeType, THEME_OPTIONS } from './ThemePickerModal';
 import { APP_VERSION, BUILD_DATE, BUILD_TIME, FULL_BUILD_INFO } from '../../config/version';
@@ -76,27 +77,25 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarLoading(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        setAvatarUrl(base64);
-        try {
-          const res = await AuthService.updateProfile({ avatar_url: base64, display_name: displayName });
-          if (res) {
-            onUpdateUser(res);
-          }
-          setSavedMsg('✅ Profile photo updated!');
-          setTimeout(() => setSavedMsg(''), 2500);
-        } catch {
-          setSavedMsg('✅ Profile photo saved');
-          setTimeout(() => setSavedMsg(''), 2000);
+    try {
+      const { url } = await CloudinaryService.uploadWithFallback(file);
+      if (url) {
+        setAvatarUrl(url);
+        const res = await AuthService.updateProfile({ avatar_url: url, display_name: displayName });
+        if (res) {
+          onUpdateUser(res);
         }
+        setSavedMsg('✅ Profile photo updated!');
+        setTimeout(() => setSavedMsg(''), 2500);
       }
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      setSavedMsg('❌ Failed to upload photo');
+      setTimeout(() => setSavedMsg(''), 2000);
+    } finally {
       setAvatarLoading(false);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+      e.target.value = '';
+    }
   };
 
   const handleRemoveAvatar = async () => {

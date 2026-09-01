@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { User, SpytusStory } from '../../types';
 import { socketService } from '../../services/socket';
+import { CloudinaryService } from '../../services/cloudinary';
 
 interface SpytusModalProps {
   currentUser: User;
@@ -204,17 +205,21 @@ export const SpytusModal: React.FC<SpytusModalProps> = ({
         ref={fileInputRef}
         accept="image/*,video/*"
         style={{ display: 'none' }}
-        onChange={(e) => {
+        onChange={async (e) => {
           const file = e.target.files?.[0];
           if (!file) return;
-          const reader = new FileReader();
-          reader.onload = () => {
-            setMediaUrl(reader.result as string);
-            setCreatorType('media');
-            setShowCreator(true);
-          };
-          reader.readAsDataURL(file);
-          e.target.value = '';
+          try {
+            const { url } = await CloudinaryService.uploadWithFallback(file);
+            if (url) {
+              setMediaUrl(url);
+              setCreatorType('media');
+              setShowCreator(true);
+            }
+          } catch (err) {
+            console.error('Spytus upload error:', err);
+          } finally {
+            e.target.value = '';
+          }
         }}
       />
 

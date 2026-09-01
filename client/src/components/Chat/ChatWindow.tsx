@@ -43,6 +43,7 @@ import { socketService } from '../../services/socket';
 import { E2EEService } from '../../services/encryption';
 import { AuthService } from '../../services/auth';
 import { LocalVaultService } from '../../services/localVault';
+import { CloudinaryService } from '../../services/cloudinary';
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -157,22 +158,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
-  const handleWallpaperFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleWallpaperFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        setCustomWallpaper(base64);
-        localStorage.setItem('chat_bg_' + conversation.id, base64);
+    try {
+      const { url } = await CloudinaryService.uploadWithFallback(file);
+      if (url) {
+        setCustomWallpaper(url);
+        localStorage.setItem('chat_bg_' + conversation.id, url);
         setShowWallpaperModal(false);
         setSyncToast('🎨 Custom background photo applied!');
         setTimeout(() => setSyncToast(null), 2500);
       }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    } catch (err) {
+      console.error('Wallpaper upload error:', err);
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleSetPresetWallpaper = (presetGradient: string) => {
@@ -826,15 +828,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64data = reader.result as string;
-          if (peer && base64data) {
+        try {
+          const { url } = await CloudinaryService.uploadWithFallback(audioBlob);
+          if (peer && url) {
             socketService.emit('send_message', {
               conversationId: conversation.id,
               recipientId: peer.id,
               ciphertext: 'VOICE_NOTE',
-              mediaUrl: base64data,
+              mediaUrl: url,
               durationSeconds: recordingDuration,
               messageType: 'voice'
             }, (res: any) => {
@@ -845,8 +846,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               }
             });
           }
-        };
-        reader.readAsDataURL(audioBlob);
+        } catch (err) {
+          console.error('Voice note upload error:', err);
+        }
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -900,15 +902,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       mediaRecorder.onstop = async () => {
         const videoBlob = new Blob(roundVideoChunksRef.current, { type: 'video/webm' });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64data = reader.result as string;
-          if (peer && base64data) {
+        try {
+          const { url } = await CloudinaryService.uploadWithFallback(videoBlob);
+          if (peer && url) {
             socketService.emit('send_message', {
               conversationId: conversation.id,
               recipientId: peer.id,
               ciphertext: 'ROUND_VIDEO_NOTE',
-              mediaUrl: base64data,
+              mediaUrl: url,
               durationSeconds: recordingDuration,
               messageType: 'round_video'
             }, (res: any) => {
@@ -919,8 +920,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               }
             });
           }
-        };
-        reader.readAsDataURL(videoBlob);
+        } catch (err) {
+          console.error('Round video upload error:', err);
+        }
         stream.getTracks().forEach(track => track.stop());
         roundVideoStreamRef.current = null;
       };
@@ -1123,34 +1125,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     e.target.value = '';
 
     for (const file of fileList) {
-      await new Promise<void>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result as string;
-          let msgType: 'image' | 'video' | 'file' = 'file';
-          if (file.type.startsWith('image/')) msgType = 'image';
-          else if (file.type.startsWith('video/')) msgType = 'video';
+      try {
+        const { url } = await CloudinaryService.uploadWithFallback(file);
+        let msgType: 'image' | 'video' | 'file' | 'audio' = 'file';
+        if (file.type.startsWith('image/')) msgType = 'image';
+        else if (file.type.startsWith('video/')) msgType = 'video';
+        else if (file.type.startsWith('audio/')) msgType = 'audio';
 
-          socketService.emit('send_message', {
-            conversationId: conversation.id,
-            recipientId: peer.id,
-            ciphertext: file.name,
-            mediaUrl: base64,
-            fileName: file.name,
-            fileSize: file.size,
-            messageType: msgType,
-            viewOnce: isViewOnceSend
-          }, (res: any) => {
-            if (res && res.message) {
-              const updatedList = LocalVaultService.upsertMessage(conversation.id, res.message);
-              setMessages(updatedList);
-              scrollToBottom();
-            }
-          });
-          resolve();
-        };
-        reader.readAsDataURL(file);
-      });
+        socketService.emit('send_message', {
+          conversationId: conversation.id,
+          recipientId: peer.id,
+          ciphertext: file.name,
+          mediaUrl: url,
+          fileName: file.name,
+          fileSize: file.size,
+          messageType: msgType,
+          viewOnce: isViewOnceSend
+        }, (res: any) => {
+          if (res && res.message) {
+            const updatedList = LocalVaultService.upsertMessage(conversation.id, res.message);
+            setMessages(updatedList);
+            scrollToBottom();
+          }
+        });
+      } catch (err) {
+        console.error('File upload error:', err);
+      }
     }
     setIsViewOnceSend(false);
   };
