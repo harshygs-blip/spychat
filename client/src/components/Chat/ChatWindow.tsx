@@ -1118,11 +1118,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Header */}
       <div className="glass" style={{
-        padding: '10px 16px',
+        paddingTop: 'max(10px, calc(env(safe-area-inset-top, 0px) + 6px))',
+        paddingBottom: '10px',
+        paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid var(--border-color)'
+        borderBottom: '1px solid var(--border-color)',
+        zIndex: 25
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button

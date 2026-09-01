@@ -37,7 +37,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
   return (
     <header className="glass" style={{
-      padding: '10px 16px',
+      paddingTop: 'max(10px, calc(env(safe-area-inset-top, 0px) + 6px))',
+      paddingBottom: '10px',
+      paddingLeft: 'max(16px, env(safe-area-inset-left, 0px))',
+      paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',

@@ -365,7 +365,10 @@ export const CallModal: React.FC<CallModalProps> = ({
       <div style={{
         position: 'relative',
         zIndex: 20,
-        padding: '24px 20px',
+        paddingTop: 'max(24px, calc(env(safe-area-inset-top, 0px) + 16px))',
+        paddingBottom: '20px',
+        paddingLeft: 'max(20px, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(20px, env(safe-area-inset-right, 0px))',
         background: 'linear-gradient(to bottom, rgba(4, 7, 17, 0.85) 0%, transparent 100%)',
         display: 'flex',
         flexDirection: 'column',
