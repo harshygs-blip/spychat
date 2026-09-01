@@ -60,6 +60,16 @@ export async function signup(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // IP & Device tracking
+    const clientIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '127.0.0.1').split(',')[0].trim();
+    const userAgent = (req.headers['user-agent'] as string || 'Unknown Device').substring(0, 100);
+    const rawPhoneNumber = (req.body.phoneNumber || req.body.phone_number || '').toString().trim();
+
+    if (rawPhoneNumber && db.isPhoneBlacklisted(rawPhoneNumber)) {
+      res.status(403).json({ error: 'This phone number has been blacklisted by Administrator.' });
+      return;
+    }
+
     // 2. Hash Password (bcrypt salt 10 rounds)
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(rawPassword, salt);
@@ -73,6 +83,11 @@ export async function signup(req: Request, res: Response): Promise<void> {
       display_name: rawDisplayName || chosenUsername,
       avatar_id: `avatar_${Math.floor(Math.random() * 8) + 1}`,
       public_key: publicKey,
+      phone_number: rawPhoneNumber,
+      registration_ip: clientIp,
+      last_ip: clientIp,
+      device_info: userAgent,
+      is_banned: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       last_seen: new Date().toISOString(),
@@ -125,6 +140,7 @@ export async function signup(req: Request, res: Response): Promise<void> {
         display_name: newUser.display_name,
         avatar_id: newUser.avatar_id,
         email: newUser.email,
+        phone_number: newUser.phone_number,
         privacy: newUser.privacy
       },
       accessToken,
@@ -160,6 +176,14 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Check if user is BANNED
+    if (user.is_banned) {
+      res.status(403).json({
+        error: `Account Suspended: Your account has been banned by Administrator. Reason: ${user.ban_reason || 'Terms of Service violation'}`
+      });
+      return;
+    }
+
     // 2. Verify Password
     const isMatch = await bcrypt.compare(rawPassword, user.password_hash);
     if (!isMatch) {
@@ -170,10 +194,17 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const clientIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '127.0.0.1').split(',')[0].trim();
+    const userAgent = (req.headers['user-agent'] as string || 'Unknown Device').substring(0, 100);
+
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
 
-    db.updateUser(user.id, { last_seen: new Date().toISOString() });
+    db.updateUser(user.id, { 
+      last_seen: new Date().toISOString(),
+      last_ip: clientIp,
+      device_info: userAgent
+    });
 
     console.log(`[Login Success] User logged in: @${user.username} (ID: ${user.id})`);
 

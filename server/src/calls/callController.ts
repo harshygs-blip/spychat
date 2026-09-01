@@ -8,7 +8,7 @@ export function getCallLogs(req: AuthenticatedRequest, res: Response): void {
 }
 
 export function deleteCallLog(req: AuthenticatedRequest, res: Response): void {
-  const { callId } = req.params;
+  const callId = Array.isArray(req.params.callId) ? req.params.callId[0] : req.params.callId;
   const success = db.deleteCallLog(callId, req.userId!);
   res.json({ success });
 }

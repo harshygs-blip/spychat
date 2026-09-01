@@ -39,6 +39,13 @@ export interface User {
     typing_indicator: boolean;
     spytus_privacy?: 'all' | 'contacts' | 'whitelist' | 'blacklist';
   };
+  phone_number?: string;
+  last_ip?: string;
+  registration_ip?: string;
+  device_info?: string;
+  is_banned?: boolean;
+  ban_reason?: string;
+  banned_at?: string;
   business_automation?: {
     greeting_enabled: boolean;
     greeting_message: string;
@@ -150,6 +157,8 @@ interface DatabaseSchema {
   calls: CallLog[];
   spytus_stories?: SpytusStory[];
   saved_messages?: Record<string, string[]>;
+  banned_ips?: string[];
+  blacklisted_phones?: string[];
 }
 
 const DB_FILE_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/spychat_db.json');
@@ -162,7 +171,9 @@ class Database {
     messages: [],
     calls: [],
     spytus_stories: [],
-    saved_messages: {}
+    saved_messages: {},
+    banned_ips: [],
+    blacklisted_phones: []
   };
 
   constructor() {
@@ -562,28 +573,6 @@ class Database {
     return msg;
   }
 
-  public addMessageReaction(messageId: string, userId: string, emoji: string): Message | undefined {
-    const msg = this.data.messages.find(m => m.id === messageId);
-    if (!msg) return undefined;
-
-    if (!msg.reactions) msg.reactions = [];
-    const idx = msg.reactions.findIndex(r => r.user_id === userId);
-    if (idx !== -1) {
-      if (msg.reactions[idx].emoji === emoji) {
-        // Toggle off if same emoji tapped
-        msg.reactions.splice(idx, 1);
-      } else {
-        // Switch emoji
-        msg.reactions[idx].emoji = emoji;
-      }
-    } else {
-      msg.reactions.push({ user_id: userId, emoji });
-    }
-
-    this.save();
-    return msg;
-  }
-
   public markMessagesAsRead(conversationId: string, readerUserId: string): void {
     let changed = false;
     this.data.messages.forEach(m => {
@@ -760,6 +749,139 @@ class Database {
     this.data.calls = this.data.calls.filter(c => !(c.caller_id === userId || c.receiver_id === userId));
     this.save();
     return true;
+  }
+
+  // ==========================================
+  // --- SUPER ADMIN & MODERATION METHODS ---
+  // ==========================================
+
+  public getAllUsersAdmin(): User[] {
+    return this.data.users.map(u => ({ ...u }));
+  }
+
+  public banUser(userId: string, reason: string = 'Violation of Privacy Terms'): boolean {
+    const user = this.findUserById(userId);
+    if (!user) return false;
+    user.is_banned = true;
+    user.ban_reason = reason;
+    user.banned_at = new Date().toISOString();
+    // Invalidate active sessions
+    this.data.sessions = this.data.sessions.filter(s => s.user_id !== userId);
+    this.save();
+    return true;
+  }
+
+  public unbanUser(userId: string): boolean {
+    const user = this.findUserById(userId);
+    if (!user) return false;
+    user.is_banned = false;
+    user.ban_reason = undefined;
+    user.banned_at = undefined;
+    this.save();
+    return true;
+  }
+
+  public deleteUserAdmin(userId: string): boolean {
+    const idx = this.data.users.findIndex(u => u.id === userId);
+    if (idx !== -1) {
+      this.data.users.splice(idx, 1);
+      this.data.sessions = this.data.sessions.filter(s => s.user_id !== userId);
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  public banIp(ip: string): boolean {
+    if (!this.data.banned_ips) this.data.banned_ips = [];
+    const cleanIp = ip.trim();
+    if (cleanIp && !this.data.banned_ips.includes(cleanIp)) {
+      this.data.banned_ips.push(cleanIp);
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  public unbanIp(ip: string): boolean {
+    if (!this.data.banned_ips) return false;
+    const initialLen = this.data.banned_ips.length;
+    this.data.banned_ips = this.data.banned_ips.filter(item => item !== ip.trim());
+    if (this.data.banned_ips.length !== initialLen) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  public isIpBanned(ip: string): boolean {
+    if (!this.data.banned_ips || !ip) return false;
+    const clean = ip.trim().replace(/^::ffff:/, '');
+    return this.data.banned_ips.some(banned => {
+      const bClean = banned.trim().replace(/^::ffff:/, '');
+      return bClean === clean || clean.includes(bClean);
+    });
+  }
+
+  public getBannedIps(): string[] {
+    return this.data.banned_ips || [];
+  }
+
+  public blacklistPhone(phone: string): boolean {
+    if (!this.data.blacklisted_phones) this.data.blacklisted_phones = [];
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    if (cleanPhone && !this.data.blacklisted_phones.includes(cleanPhone)) {
+      this.data.blacklisted_phones.push(cleanPhone);
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  public unblacklistPhone(phone: string): boolean {
+    if (!this.data.blacklisted_phones) return false;
+    const initialLen = this.data.blacklisted_phones.length;
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    this.data.blacklisted_phones = this.data.blacklisted_phones.filter(p => p !== cleanPhone);
+    if (this.data.blacklisted_phones.length !== initialLen) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  public isPhoneBlacklisted(phone: string): boolean {
+    if (!this.data.blacklisted_phones || !phone) return false;
+    const clean = phone.trim().replace(/\s+/g, '');
+    return this.data.blacklisted_phones.includes(clean);
+  }
+
+  public getBlacklistedPhones(): string[] {
+    return this.data.blacklisted_phones || [];
+  }
+
+  public getAdminTelemetry(): {
+    total_users: number;
+    banned_users: number;
+    banned_ips_count: number;
+    blacklisted_phones_count: number;
+    total_conversations: number;
+    total_messages: number;
+    total_calls: number;
+    total_active_sessions: number;
+    total_spytus_stories: number;
+  } {
+    return {
+      total_users: this.data.users.length,
+      banned_users: this.data.users.filter(u => u.is_banned).length,
+      banned_ips_count: (this.data.banned_ips || []).length,
+      blacklisted_phones_count: (this.data.blacklisted_phones || []).length,
+      total_conversations: this.data.conversations.length,
+      total_messages: this.data.messages.length,
+      total_calls: this.data.calls.length,
+      total_active_sessions: this.data.sessions.length,
+      total_spytus_stories: (this.data.spytus_stories || []).length
+    };
   }
 }
 

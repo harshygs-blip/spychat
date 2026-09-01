@@ -13,6 +13,11 @@ const userSockets = new Map<string, Set<string>>();
 export function setupSocketHandler(io: Server): void {
   // Authentication middleware for Socket.io
   io.use((socket: AuthenticatedSocket, next) => {
+    const clientIp = (socket.handshake.headers['x-forwarded-for'] as string || socket.handshake.address || '').split(',')[0].trim();
+    if (clientIp && db.isIpBanned(clientIp)) {
+      return next(new Error('Access Denied: Your IP address is banned.'));
+    }
+
     const token = socket.handshake.auth?.token || socket.handshake.query?.token as string;
     if (!token) {
       return next(new Error('Authentication error: Missing token'));
@@ -28,7 +33,14 @@ export function setupSocketHandler(io: Server): void {
       return next(new Error('Authentication error: User not found'));
     }
 
+    if (user.is_banned) {
+      return next(new Error(`Account Suspended: ${user.ban_reason || 'Terms violation'}`));
+    }
+
     socket.userId = user.id;
+    if (clientIp) {
+      db.updateUser(user.id, { last_ip: clientIp });
+    }
     next();
   });
 

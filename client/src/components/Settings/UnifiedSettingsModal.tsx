@@ -37,6 +37,7 @@ interface UnifiedSettingsProps {
   onLogout: () => void;
   onNavigateToBusiness: () => void;
   onOpenShareApp?: () => void;
+  onOpenAdminDashboard?: () => void;
 }
 
 type SettingsSubPage = 'main' | 'profile' | 'theme' | 'privacy' | 'security' | 'vault' | 'backup' | 'notifications' | 'about';
@@ -48,7 +49,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   onUpdateUser,
   onLogout,
   onNavigateToBusiness,
-  onOpenShareApp
+  onOpenShareApp,
+  onOpenAdminDashboard
 }) => {
   const [currentPage, setCurrentPage] = useState<SettingsSubPage>('main');
 
@@ -705,6 +707,56 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
                 </div>
               </div>
               <ChevronRight size={18} color="var(--accent-cyan)" />
+            </div>
+          )}
+
+          {/* 10. Admin Command Center (Root Moderation) 🛡️ */}
+          {onOpenAdminDashboard && (
+            <div
+              onClick={onOpenAdminDashboard}
+              style={{
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                borderTop: '1px solid var(--border-color)',
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #06b6d4 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 0 12px rgba(239, 68, 68, 0.35)'
+                }}>
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '800', color: '#ffffff' }}>Admin Command Center</span>
+                    <span style={{
+                      fontSize: '9.5px',
+                      fontWeight: '800',
+                      background: 'rgba(239, 68, 68, 0.25)',
+                      border: '1px solid rgba(239, 68, 68, 0.5)',
+                      color: '#fca5a5',
+                      padding: '1px 6px',
+                      borderRadius: '8px'
+                    }}>
+                      ROOT
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>User management, IP bans, phone blacklist & telemetry</div>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
             </div>
           )}
         </div>

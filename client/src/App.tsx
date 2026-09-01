@@ -26,6 +26,8 @@ import { ShareAppModal } from './components/Settings/ShareAppModal';
 import { SplashScreen } from './components/Common/SplashScreen';
 import { UpdateService, AppUpdateInfo } from './services/updateService';
 import { UpdateModal } from './components/Common/UpdateModal';
+import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
+import { firebaseApp } from './services/firebase';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 
@@ -35,6 +37,8 @@ export const App: React.FC = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showShareAppModal, setShowShareAppModal] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [activeBroadcast, setActiveBroadcast] = useState<{ title: string; message: string; timestamp: string } | null>(null);
   const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const MAIN_TABS = ['chats', 'spytus', 'calls', 'business', 'settings'] as const;
@@ -442,8 +446,25 @@ export const App: React.FC = () => {
     socketService.on('new_version_available', handleNewVersionAvailable);
     socketService.on('new_build_broadcast', handleNewVersionAvailable);
 
+    // Listen for Emergency Admin Broadcasts
+    const handleAdminBroadcast = (data: any) => {
+      playMessageChime();
+      setActiveBroadcast(data);
+    };
+    socketService.on('admin_broadcast', handleAdminBroadcast);
+
+    // Check URL Hash for direct #admin route
+    const checkAdminHash = () => {
+      if (window.location.hash === '#admin') {
+        setShowAdminDashboard(true);
+      }
+    };
+    checkAdminHash();
+    window.addEventListener('hashchange', checkAdminHash);
+
     return () => {
       stopRingtone();
+      window.removeEventListener('hashchange', checkAdminHash);
       socketService.off('new_message', handleGlobalNewMessage);
       socketService.off('message_ack', handleGlobalNewMessage);
       socketService.off('conversation_deleted', handleConversationDeleted);
@@ -456,6 +477,7 @@ export const App: React.FC = () => {
       socketService.off('call_cancelled', handleCallCancelled);
       socketService.off('new_version_available', handleNewVersionAvailable);
       socketService.off('new_build_broadcast', handleNewVersionAvailable);
+      socketService.off('admin_broadcast', handleAdminBroadcast);
     };
   }, [currentUser, activeConversation, reloadConversations]);
 
@@ -863,6 +885,7 @@ export const App: React.FC = () => {
             onLogout={handleLogout}
             onNavigateToBusiness={() => handleTabChange('business')}
             onOpenShareApp={() => setShowShareAppModal(true)}
+            onOpenAdminDashboard={() => setShowAdminDashboard(true)}
           />
         </div>
       </main>
@@ -1031,6 +1054,62 @@ export const App: React.FC = () => {
           updateInfo={updateInfo}
           onClose={() => setShowUpdateModal(false)}
         />
+      )}
+
+      {/* SUPER ADMIN COMMAND DASHBOARD MODAL 🛡️ */}
+      {showAdminDashboard && (
+        <AdminDashboardModal
+          onClose={() => {
+            setShowAdminDashboard(false);
+            if (window.location.hash === '#admin') {
+              window.location.hash = '';
+            }
+          }}
+        />
+      )}
+
+      {/* EMERGENCY GLOBAL BROADCAST ANNOUNCEMENT BANNER 📢 */}
+      {activeBroadcast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: '480px',
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(185, 28, 28, 0.98) 100%)',
+          borderRadius: '20px',
+          padding: '16px 18px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(239, 68, 68, 0.5)',
+          border: '1.5px solid rgba(254, 202, 202, 0.6)',
+          zIndex: 999999,
+          color: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          animation: 'slideDownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>🚨</span>
+              <span style={{ fontWeight: '800', fontSize: '15px', color: '#ffffff', letterSpacing: '0.3px' }}>
+                {activeBroadcast.title}
+              </span>
+            </div>
+            <button
+              onClick={() => setActiveBroadcast(null)}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: '2px' }}
+            >
+              ✕
+            </button>
+          </div>
+          <p style={{ fontSize: '13px', lineHeight: '1.45', color: '#fef2f2' }}>
+            {activeBroadcast.message}
+          </p>
+          <div style={{ fontSize: '10.5px', color: 'rgba(255,255,255,0.7)', alignSelf: 'flex-end' }}>
+            Broadcasted by Administrator
+          </div>
+        </div>
       )}
     </div>
   );

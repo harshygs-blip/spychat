@@ -8,7 +8,9 @@ import userRoutes from './users/userRoutes';
 import conversationRoutes from './conversations/conversationRoutes';
 import messageRoutes from './messages/messageRoutes';
 import callRoutes from './calls/callRoutes';
+import adminRoutes from './admin/adminRoutes';
 import { setupSocketHandler } from './socket/socketHandler';
+import { db } from './database/db';
 
 dotenv.config();
 
@@ -21,10 +23,19 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key']
 }));
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+// Global IP Ban Firewall Check
+app.use((req, res, next) => {
+  const clientIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '').split(',')[0].trim();
+  if (clientIp && db.isIpBanned(clientIp)) {
+    return res.status(403).json({ error: 'Access Denied: Your IP address has been blacklisted by Administrator.' });
+  }
+  next();
+});
 
 // Health check
 app.get('/health', (req, res) => {
@@ -42,6 +53,7 @@ app.use('/users', userRoutes);
 app.use('/conversations', conversationRoutes);
 app.use('/messages', messageRoutes);
 app.use('/calls', callRoutes);
+app.use('/admin', adminRoutes);
 
 // Direct APK Download & Sharing Routes
 app.get('/app-version', (req, res) => {
