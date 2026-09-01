@@ -95,7 +95,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [deleteChatForBoth, setDeleteChatForBoth] = useState(true);
   const [showTopMenu, setShowTopMenu] = useState(false);
   const [showContactInfoModal, setShowContactInfoModal] = useState(false);
-  const [isMutedChat, setIsMutedChat] = useState(false);
+  const [showDisappearingModal, setShowDisappearingModal] = useState(false);
+  const [disappearingTimerSeconds, setDisappearingTimerSeconds] = useState<number>(conversation.disappearing_timer_seconds || 0);
+  const [isMutedChat, setIsMutedChat] = useState<boolean>(() => {
+    return localStorage.getItem('muted_conv_' + conversation.id) === 'true';
+  });
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
   // View Once & Round Video & Saved Messages
@@ -655,6 +659,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     });
     setShowDeleteChatModal(false);
     onBack();
+  };
+
+  // Toggle Mute Notifications
+  const handleToggleMuteChat = () => {
+    const nextState = !isMutedChat;
+    setIsMutedChat(nextState);
+    localStorage.setItem('muted_conv_' + conversation.id, nextState.toString());
+    setSyncToast(nextState ? '🔕 Notifications muted for this chat' : '🔔 Notifications unmuted');
+    setTimeout(() => setSyncToast(null), 2500);
+    setShowTopMenu(false);
+  };
+
+  // Update Disappearing Messages Timer
+  const handleSetDisappearingTimer = (seconds: number) => {
+    setDisappearingTimerSeconds(seconds);
+    conversation.disappearing_timer_seconds = seconds;
+    socketService.emit('set_disappearing_timer', {
+      conversationId: conversation.id,
+      seconds
+    });
+    setShowDisappearingModal(false);
+    const label = seconds === 0 ? 'Off' : seconds === 60 ? '1 Minute (Test)' : seconds === 86400 ? '24 Hours' : seconds === 604800 ? '7 Days' : '90 Days';
+    setSyncToast(`⏱️ Disappearing timer set to ${label}`);
+    setTimeout(() => setSyncToast(null), 3000);
   };
 
   // Start Editing Message
@@ -1280,7 +1308,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       <button
                         onClick={() => {
                           setShowTopMenu(false);
-                          setShowDisappearingMenu(true);
+                          setShowDisappearingModal(true);
                         }}
                         style={{
                           padding: '10px 12px',
@@ -1298,14 +1326,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         }}
                       >
                         <Timer size={16} color="#f87171" /> Disappearing Timer
+                        {disappearingTimerSeconds > 0 && (
+                          <span style={{ marginLeft: 'auto', fontSize: '10px', padding: '2px 6px', borderRadius: '6px', background: 'rgba(248, 113, 113, 0.2)', color: '#f87171', fontWeight: '800' }}>
+                            {disappearingTimerSeconds === 60 ? '1m' : disappearingTimerSeconds === 86400 ? '24h' : disappearingTimerSeconds === 604800 ? '7d' : '90d'}
+                          </span>
+                        )}
                       </button>
 
                       {/* Mute Notifications */}
                       <button
-                        onClick={() => {
-                          setIsMutedChat(!isMutedChat);
-                          setShowTopMenu(false);
-                        }}
+                        onClick={handleToggleMuteChat}
                         style={{
                           padding: '10px 12px',
                           background: 'none',
@@ -3409,6 +3439,115 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* 8. DISAPPEARING MESSAGES MODAL */}
+      {showDisappearingModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          zIndex: 500
+        }}>
+          <div className="glass" style={{
+            width: '100%',
+            maxWidth: '340px',
+            borderRadius: '24px',
+            padding: '22px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95), 0 0 30px rgba(248, 113, 113, 0.2)',
+            border: '1.5px solid rgba(248, 113, 113, 0.35)',
+            background: 'rgba(12, 19, 36, 0.98)',
+            animation: 'scaleUpFade 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', color: '#ffffff', fontSize: '16px' }}>
+                <Timer size={20} color="#f87171" />
+                <span>Disappearing Messages</span>
+              </div>
+              <button
+                onClick={() => setShowDisappearingModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              When enabled, new messages in this chat will self-destruct for both participants after the selected duration.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                { label: 'Off', seconds: 0, desc: 'Messages stay forever in encrypted vault' },
+                { label: '1 Minute (Test Mode)', seconds: 60, desc: 'Fast test countdown' },
+                { label: '24 Hours', seconds: 86400, desc: 'Self-destruct 1 day after sending' },
+                { label: '7 Days', seconds: 604800, desc: 'Self-destruct 1 week after sending' },
+                { label: '90 Days', seconds: 7776000, desc: 'Self-destruct 3 months after sending' }
+              ].map((opt) => (
+                <button
+                  key={opt.seconds}
+                  onClick={() => handleSetDisappearingTimer(opt.seconds)}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    background: disappearingTimerSeconds === opt.seconds ? 'rgba(248, 113, 113, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                    border: disappearingTimerSeconds === opt.seconds ? '1.5px solid #f87171' : '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '2px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span style={{ fontSize: '13.5px', fontWeight: '700', color: disappearingTimerSeconds === opt.seconds ? '#ffffff' : 'var(--text-primary)' }}>
+                      {opt.label}
+                    </span>
+                    {disappearingTimerSeconds === opt.seconds && (
+                      <span style={{ fontSize: '11px', color: '#f87171', fontWeight: '800' }}>Active ✓</span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {opt.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING SYNC / ACTION TOAST */}
+      {syncToast && (
+        <div style={{
+          position: 'fixed',
+          top: '70px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(10, 16, 32, 0.95)',
+          border: '1px solid var(--accent-cyan)',
+          color: '#ffffff',
+          padding: '8px 18px',
+          borderRadius: '20px',
+          fontSize: '13px',
+          fontWeight: '700',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(6, 182, 212, 0.4)',
+          backdropFilter: 'blur(20px)',
+          zIndex: 99999,
+          animation: 'slideDownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+          pointerEvents: 'none'
+        }}>
+          {syncToast}
         </div>
       )}
     </div>
