@@ -28,6 +28,7 @@ import { AuthService } from '../../services/auth';
 import { socketService } from '../../services/socket';
 import { ThemeType, THEME_OPTIONS } from './ThemePickerModal';
 import { APP_VERSION, BUILD_DATE, BUILD_TIME, FULL_BUILD_INFO } from '../../config/version';
+import { Capacitor } from '@capacitor/core';
 
 interface UnifiedSettingsProps {
   currentUser: UserType;
@@ -710,8 +711,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
             </div>
           )}
 
-          {/* 10. Admin Command Center (Root Moderation) 🛡️ */}
-          {onOpenAdminDashboard && (
+          {/* 10. Admin Command Center (Website Only - Hidden in Mobile App) 🛡️ */}
+          {onOpenAdminDashboard && !Capacitor.isNativePlatform() && (
             <div
               onClick={onOpenAdminDashboard}
               style={{

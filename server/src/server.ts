@@ -9,6 +9,7 @@ import conversationRoutes from './conversations/conversationRoutes';
 import messageRoutes from './messages/messageRoutes';
 import callRoutes from './calls/callRoutes';
 import adminRoutes from './admin/adminRoutes';
+import { getAdminPortalHtml } from './admin/adminPortalHtml';
 import { setupSocketHandler } from './socket/socketHandler';
 import { db } from './database/db';
 
@@ -18,6 +19,17 @@ const app = express();
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 5000;
+
+// Standalone Web Admin Portal (Open in browser at /admin-portal or /admin-dashboard)
+app.get('/admin-portal', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getAdminPortalHtml());
+});
+
+app.get('/admin-dashboard', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getAdminPortalHtml());
+});
 
 // Middleware
 app.use(cors({
