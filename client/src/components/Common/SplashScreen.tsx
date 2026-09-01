@@ -18,7 +18,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '40px 24px 32px 24px',
+      paddingTop: 'max(50px, calc(env(safe-area-inset-top, 0px) + 16px))',
+      paddingBottom: 'max(24px, calc(env(safe-area-inset-bottom, 0px) + 12px))',
+      paddingLeft: '24px',
+      paddingRight: '24px',
       zIndex: 9999,
       overflow: 'hidden'
     }}>

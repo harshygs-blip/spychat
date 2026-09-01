@@ -28,18 +28,19 @@
   --radius-lg: 20px;
   --radius-full: 9999px;
   
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --status-bar-height: 46px;
+  --safe-top: max(var(--status-bar-height), calc(env(safe-area-inset-top, 0px) + 12px));
+  --safe-bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px));
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
 .safe-top-padding {
-  padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px)) !important;
+  padding-top: max(46px, calc(env(safe-area-inset-top, 0px) + 12px)) !important;
 }
 
 .safe-bottom-padding {
-  padding-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px)) !important;
+  padding-bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px)) !important;
 }
 
 [data-theme="emerald-green"] {

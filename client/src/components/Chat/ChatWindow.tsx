@@ -1118,8 +1118,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Header */}
       <div className="glass" style={{
-        paddingTop: 'max(10px, calc(env(safe-area-inset-top, 0px) + 6px))',
-        paddingBottom: '10px',
+        paddingTop: 'max(46px, calc(env(safe-area-inset-top, 0px) + 12px))',
+        paddingBottom: '12px',
         paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
         paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
         display: 'flex',
