@@ -122,6 +122,43 @@ export const FloatingCallPiP: React.FC<FloatingCallPiPProps> = ({
     isDraggingRef.current = false;
   };
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Avoid triggering drag if clicking on buttons
+    if ((e.target as HTMLElement).closest('button')) return;
+    isDraggingRef.current = true;
+    hasMovedRef.current = false;
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initX: position.x,
+      initY: position.y
+    };
+
+    const onMouseMove = (moveEvt: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const dx = moveEvt.clientX - dragStartRef.current.startX;
+      const dy = moveEvt.clientY - dragStartRef.current.startY;
+
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        hasMovedRef.current = true;
+      }
+
+      const newX = Math.max(10, Math.min(window.innerWidth - (sizeMode === 'large' ? 175 : 135), dragStartRef.current.initX + dx));
+      const newY = Math.max(70, Math.min(window.innerHeight - (sizeMode === 'large' ? 245 : 195), dragStartRef.current.initY + dy));
+
+      setPosition({ x: newX, y: newY });
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   const handleToggleMute = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     const next = !isMuted;
@@ -158,6 +195,7 @@ export const FloatingCallPiP: React.FC<FloatingCallPiPProps> = ({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
       style={{
         position: 'fixed',
         left: `${position.x}px`,

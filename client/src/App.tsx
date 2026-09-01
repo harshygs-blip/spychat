@@ -24,6 +24,8 @@ import { PermissionModal } from './components/Common/PermissionModal';
 import { LocalVaultService } from './services/localVault';
 import { ShareAppModal } from './components/Settings/ShareAppModal';
 import { SplashScreen } from './components/Common/SplashScreen';
+import { UpdateService, AppUpdateInfo } from './services/updateService';
+import { UpdateModal } from './components/Common/UpdateModal';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 
@@ -33,6 +35,8 @@ export const App: React.FC = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showShareAppModal, setShowShareAppModal] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<AppUpdateInfo | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const MAIN_TABS = ['chats', 'spytus', 'calls', 'business', 'settings'] as const;
   type TabType = typeof MAIN_TABS[number];
 
@@ -246,6 +250,14 @@ export const App: React.FC = () => {
             setShowPermissionModal(true);
           }
         }
+
+        // Check for App Auto Updates (WhatsApp Style)
+        UpdateService.checkForUpdates().then(info => {
+          if (info.hasUpdate) {
+            setUpdateInfo(info);
+            setShowUpdateModal(true);
+          }
+        });
       } catch (err) {
         console.error('Init auth error:', err);
       } finally {
@@ -407,6 +419,19 @@ export const App: React.FC = () => {
       setIncomingCall(null);
     };
 
+    // Listen for Real-Time App Auto-Update Broadcasts
+    const handleNewVersionAvailable = (data: any) => {
+      console.log('[Socket] New build broadcast received:', data);
+      setUpdateInfo({
+        hasUpdate: true,
+        latestVersion: data.version || '1.0.5',
+        downloadUrl: data.downloadUrl || `${AuthService.getApiBase()}/download/app.apk`,
+        changelog: data.changelog || '⚡ New SPYCHAT build released! Update to get latest features.',
+        forceUpdate: !!data.forceUpdate
+      });
+      setShowUpdateModal(true);
+    };
+
     socketService.on('incoming_call', handleIncomingCall);
     socketService.on('call_accepted', handleCallAccepted);
     socketService.on('call_rejected', handleCallRejected);
@@ -414,6 +439,8 @@ export const App: React.FC = () => {
     socketService.on('ice_candidate', handleIceCandidate);
     socketService.on('call_ended', handleCallEnded);
     socketService.on('call_cancelled', handleCallCancelled);
+    socketService.on('new_version_available', handleNewVersionAvailable);
+    socketService.on('new_build_broadcast', handleNewVersionAvailable);
 
     return () => {
       stopRingtone();
@@ -427,6 +454,8 @@ export const App: React.FC = () => {
       socketService.off('ice_candidate', handleIceCandidate);
       socketService.off('call_ended', handleCallEnded);
       socketService.off('call_cancelled', handleCallCancelled);
+      socketService.off('new_version_available', handleNewVersionAvailable);
+      socketService.off('new_build_broadcast', handleNewVersionAvailable);
     };
   }, [currentUser, activeConversation, reloadConversations]);
 
@@ -975,6 +1004,14 @@ export const App: React.FC = () => {
       {/* FIRST TIME PERMISSION REQUEST MODAL */}
       {showPermissionModal && (
         <PermissionModal onClose={() => setShowPermissionModal(false)} />
+      )}
+
+      {/* WHATSAPP-STYLE IN-APP AUTO UPDATE MODAL 🚀 */}
+      {showUpdateModal && updateInfo && (
+        <UpdateModal
+          updateInfo={updateInfo}
+          onClose={() => setShowUpdateModal(false)}
+        />
       )}
     </div>
   );

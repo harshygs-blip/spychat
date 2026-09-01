@@ -136,56 +136,8 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
           <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
             Searching encrypted network for @{cleanQuery}...
           </div>
-        ) : cleanQuery.length === 0 ? (
-          /* --- PRIVACY FIRST PLACEHOLDER (NO USERS EXPOSED) --- */
-          <div style={{
-            textAlign: 'center',
-            padding: '70px 20px',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '14px'
-          }}>
-            <div style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '20px',
-              background: 'rgba(6, 182, 212, 0.1)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 25px rgba(6, 182, 212, 0.2)'
-            }}>
-              <Shield size={32} color="var(--accent-cyan)" />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#f8fafc', marginBottom: '6px' }}>
-                Private Encrypted Search
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '280px', margin: '0 auto', lineHeight: '1.5' }}>
-                Enter the exact <strong style={{ color: 'var(--accent-cyan)' }}>@username</strong> of the person you want to chat with.
-              </p>
-            </div>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '12px',
-              padding: '8px 14px',
-              fontSize: '11.5px',
-              color: '#94a3b8',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              marginTop: '8px'
-            }}>
-              <Lock size={13} color="var(--accent-emerald)" />
-              <span>Zero Public Directory • 100% Metadata Protected</span>
-            </div>
-          </div>
         ) : results.length > 0 ? (
-          /* --- FOUND MATCHING USER --- */
+          /* --- FOUND MATCHING USER / REGISTERED CONTACTS --- */
           <>
             <div style={{
               fontSize: '11.5px',
@@ -195,7 +147,7 @@ export const UserSearchModal: React.FC<UserSearchModalProps> = ({
               letterSpacing: '0.5px',
               marginBottom: '4px'
             }}>
-              {cleanQuery ? `Search Results (${results.length})` : `Available Contacts (${results.length})`}
+              {cleanQuery ? `Search Results (${results.length})` : `Registered Users (${results.length})`}
             </div>
 
             {results.map((user) => (

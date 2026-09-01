@@ -44,6 +44,17 @@ app.use('/messages', messageRoutes);
 app.use('/calls', callRoutes);
 
 // Direct APK Download & Sharing Routes
+app.get('/app-version', (req, res) => {
+  res.json({
+    version: '1.0.5',
+    versionCode: 5,
+    forceUpdate: false,
+    downloadUrl: 'https://github.com/harshygs-blip/spychat/raw/main/app-debug.apk',
+    changelog: '⚡ WhatsApp-style Auto-Update System\n🎙️ WebRTC HD Audio & Video Calling Fixes\n🔒 E2EE Enclave Security Enhancements',
+    releaseDate: new Date().toISOString().split('T')[0]
+  });
+});
+
 app.get('/download/app.apk', (req, res) => {
   res.redirect('https://github.com/harshygs-blip/spychat/raw/main/app-debug.apk');
 });

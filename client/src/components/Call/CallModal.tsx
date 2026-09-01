@@ -57,6 +57,57 @@ export const CallModal: React.FC<CallModalProps> = ({
 
   const [connectionStatus, setConnectionStatus] = useState<string>('Connecting...');
 
+  // Draggable Local Video Self-Preview PIP Box
+  const [localPipPos, setLocalPipPos] = useState<{ x: number; y: number }>({
+    x: typeof window !== 'undefined' ? Math.max(10, window.innerWidth - 135) : 220,
+    y: 80
+  });
+  const isDraggingLocalPip = useRef(false);
+  const pipDragStart = useRef<{ startX: number; startY: number; initX: number; initY: number }>({ startX: 0, startY: 0, initX: 0, initY: 0 });
+
+  const handlePipTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    isDraggingLocalPip.current = true;
+    pipDragStart.current = { startX: t.clientX, startY: t.clientY, initX: localPipPos.x, initY: localPipPos.y };
+  };
+
+  const handlePipTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingLocalPip.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - pipDragStart.current.startX;
+    const dy = t.clientY - pipDragStart.current.startY;
+    const newX = Math.max(10, Math.min(window.innerWidth - 125, pipDragStart.current.initX + dx));
+    const newY = Math.max(60, Math.min(window.innerHeight - 240, pipDragStart.current.initY + dy));
+    setLocalPipPos({ x: newX, y: newY });
+  };
+
+  const handlePipTouchEnd = () => {
+    isDraggingLocalPip.current = false;
+  };
+
+  const handlePipMouseDown = (e: React.MouseEvent) => {
+    isDraggingLocalPip.current = true;
+    pipDragStart.current = { startX: e.clientX, startY: e.clientY, initX: localPipPos.x, initY: localPipPos.y };
+
+    const onMouseMove = (moveEvt: MouseEvent) => {
+      if (!isDraggingLocalPip.current) return;
+      const dx = moveEvt.clientX - pipDragStart.current.startX;
+      const dy = moveEvt.clientY - pipDragStart.current.startY;
+      const newX = Math.max(10, Math.min(window.innerWidth - 125, pipDragStart.current.initX + dx));
+      const newY = Math.max(60, Math.min(window.innerHeight - 240, pipDragStart.current.initY + dy));
+      setLocalPipPos({ x: newX, y: newY });
+    };
+
+    const onMouseUp = () => {
+      isDraggingLocalPip.current = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   // Hook up WebRTC Streams & Connection State
   useEffect(() => {
     const handleRemoteStream = (stream: MediaStream) => {
@@ -241,20 +292,30 @@ export const CallModal: React.FC<CallModalProps> = ({
             }}
           />
 
-          {/* Local Video Stream (Picture in Picture) */}
-          <div style={{
-            position: 'absolute',
-            top: '70px',
-            right: '16px',
-            width: '115px',
-            height: '165px',
-            borderRadius: '18px',
-            overflow: 'hidden',
-            boxShadow: '0 8px 35px rgba(0, 0, 0, 0.8), 0 0 20px rgba(6, 182, 212, 0.35)',
-            border: '2px solid var(--accent-cyan)',
-            zIndex: 10,
-            background: '#0f172a'
-          }}>
+          {/* Local Video Stream (Draggable Picture in Picture) */}
+          <div
+            onTouchStart={handlePipTouchStart}
+            onTouchMove={handlePipTouchMove}
+            onTouchEnd={handlePipTouchEnd}
+            onMouseDown={handlePipMouseDown}
+            style={{
+              position: 'fixed',
+              left: `${localPipPos.x}px`,
+              top: `${localPipPos.y}px`,
+              width: '115px',
+              height: '165px',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(6, 182, 212, 0.45)',
+              border: '2px solid var(--accent-cyan)',
+              zIndex: 35,
+              background: '#0f172a',
+              cursor: 'grab',
+              touchAction: 'none',
+              userSelect: 'none',
+              transition: isDraggingLocalPip.current ? 'none' : 'box-shadow 0.2s ease'
+            }}
+          >
             <video
               ref={localVideoRef}
               autoPlay
@@ -265,7 +326,8 @@ export const CallModal: React.FC<CallModalProps> = ({
                 height: '100%',
                 objectFit: 'cover',
                 transform: 'scaleX(-1)', // Natural selfie mirror
-                filter: 'contrast(1.03) brightness(1.02) saturate(1.06)'
+                filter: 'contrast(1.03) brightness(1.02) saturate(1.06)',
+                pointerEvents: 'none'
               }}
             />
           </div>
