@@ -35,7 +35,8 @@ import {
   Reply,
   Music,
   Download,
-  Share2
+  Share2,
+  Palette
 } from 'lucide-react';
 import { Conversation, Message, User, AutoReplyRule, CatalogItem } from '../../types';
 import { socketService } from '../../services/socket';
@@ -127,6 +128,68 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [translationMap, setTranslationMap] = useState<Record<string, { lang: string; text: string }>>({});
   const [translateTargetMsg, setTranslateTargetMsg] = useState<Message | null>(null);
   const [burnerActiveTimers, setBurnerActiveTimers] = useState<Record<string, number>>({});
+
+  // Custom Chat Wallpaper Background
+  const [customWallpaper, setCustomWallpaper] = useState<string | null>(() => {
+    return localStorage.getItem('chat_bg_' + conversation.id) || localStorage.getItem('chat_bg_global') || null;
+  });
+  const [showWallpaperModal, setShowWallpaperModal] = useState(false);
+  const wallpaperInputRef = useRef<HTMLInputElement>(null);
+  const bgLongPressTimerRef = useRef<any>(null);
+
+  const handleBgTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.msg-bubble-animate') || (e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
+      return;
+    }
+    if (bgLongPressTimerRef.current) clearTimeout(bgLongPressTimerRef.current);
+    bgLongPressTimerRef.current = setTimeout(() => {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      setShowWallpaperModal(true);
+    }, 550);
+  };
+
+  const handleBgTouchEnd = () => {
+    if (bgLongPressTimerRef.current) {
+      clearTimeout(bgLongPressTimerRef.current);
+      bgLongPressTimerRef.current = null;
+    }
+  };
+
+  const handleWallpaperFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setCustomWallpaper(base64);
+        localStorage.setItem('chat_bg_' + conversation.id, base64);
+        setShowWallpaperModal(false);
+        setSyncToast('🎨 Custom background photo applied!');
+        setTimeout(() => setSyncToast(null), 2500);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleSetPresetWallpaper = (presetGradient: string) => {
+    setCustomWallpaper(presetGradient);
+    localStorage.setItem('chat_bg_' + conversation.id, presetGradient);
+    setShowWallpaperModal(false);
+    setSyncToast('🎨 Chat wallpaper updated!');
+    setTimeout(() => setSyncToast(null), 2500);
+  };
+
+  const handleRemoveWallpaper = () => {
+    setCustomWallpaper(null);
+    localStorage.removeItem('chat_bg_' + conversation.id);
+    setShowWallpaperModal(false);
+    setSyncToast('Chat background reset to default');
+    setTimeout(() => setSyncToast(null), 2000);
+  };
 
   // Full-Screen Media Lightbox
   const [fullscreenMedia, setFullscreenMedia] = useState<{
@@ -1157,6 +1220,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         onChange={handleFileUploaded}
       />
 
+      {/* Hidden Custom Wallpaper Gallery Picker */}
+      <input
+        type="file"
+        ref={wallpaperInputRef}
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleWallpaperFileSelect}
+      />
+
       {/* Header */}
       <div className="glass" style={{
         paddingTop: 'max(46px, calc(env(safe-area-inset-top, 0px) + 12px))',
@@ -1400,6 +1472,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         {isMutedChat ? 'Unmute Notifications' : 'Mute Notifications'}
                       </button>
 
+                      {/* Chat Wallpaper Background */}
+                      <button
+                        onClick={() => {
+                          setShowTopMenu(false);
+                          setShowWallpaperModal(true);
+                        }}
+                        style={{
+                          padding: '10px 12px',
+                          background: 'none',
+                          border: 'none',
+                          color: '#ffffff',
+                          fontSize: '13.5px',
+                          fontWeight: '600',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          borderRadius: '10px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Palette size={16} color="var(--accent-cyan)" /> Change Wallpaper
+                      </button>
+
                       {/* Sync Chat */}
                       <button
                         onClick={handleSyncChat}
@@ -1532,13 +1628,35 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Messages Scroll Area */}
       <div 
         className="chat-scroll-container"
+        onTouchStart={handleBgTouchStart}
+        onTouchEnd={handleBgTouchEnd}
+        onTouchCancel={handleBgTouchEnd}
+        onTouchMove={handleBgTouchEnd}
+        onMouseDown={handleBgTouchStart}
+        onMouseUp={handleBgTouchEnd}
+        onMouseLeave={handleBgTouchEnd}
+        onContextMenu={(e) => {
+          if (!(e.target as HTMLElement).closest('.msg-bubble-animate') && !(e.target as HTMLElement).closest('button')) {
+            e.preventDefault();
+            setShowWallpaperModal(true);
+          }
+        }}
         style={{
           flex: 1,
           overflowY: 'auto',
           padding: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px'
+          gap: '12px',
+          backgroundImage: customWallpaper 
+            ? customWallpaper.startsWith('data:') || customWallpaper.startsWith('http') || customWallpaper.startsWith('blob:')
+              ? `linear-gradient(rgba(10, 15, 30, 0.72), rgba(10, 15, 30, 0.82)), url("${customWallpaper}")`
+              : customWallpaper
+            : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          transition: 'background 0.3s ease'
         }}
       >
         {/* Disappearing Timer Active Banner */}
@@ -3896,6 +4014,138 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   boxShadow: '0 20px 60px rgba(0,0,0,0.95)'
                 }}
               />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 9. CUSTOM CHAT WALLPAPER MODAL (GALLERY / PRESETS / RESET) */}
+      {showWallpaperModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          zIndex: 99995,
+          animation: 'fadeIn 0.15s ease'
+        }}>
+          <div className="glass" style={{
+            width: '100%',
+            maxWidth: '360px',
+            borderRadius: '24px',
+            padding: '22px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95), 0 0 30px rgba(6, 182, 212, 0.25)',
+            border: '1.5px solid rgba(6, 182, 212, 0.35)',
+            background: 'rgba(12, 19, 36, 0.98)',
+            animation: 'scaleUpFade 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', color: '#ffffff', fontSize: '16px' }}>
+                <Palette size={20} color="var(--accent-cyan)" />
+                <span>Chat Wallpaper</span>
+              </div>
+              <button
+                onClick={() => setShowWallpaperModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              Select a custom photo from your gallery or choose a cyber preset wallpaper for this chat background.
+            </p>
+
+            {/* Gallery Upload Button */}
+            <button
+              onClick={() => {
+                wallpaperInputRef.current?.click();
+              }}
+              className="btn-primary"
+              style={{
+                height: '46px',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontSize: '13.5px',
+                fontWeight: '700',
+                boxShadow: '0 4px 20px rgba(6, 182, 212, 0.4)'
+              }}
+            >
+              <Image size={18} /> Choose Photo from Gallery
+            </button>
+
+            {/* Presets Grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                Preset Cyber Wallpapers:
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                {[
+                  { name: 'Neon Void', bg: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0284c7 100%)' },
+                  { name: 'Matrix Emerald', bg: 'linear-gradient(135deg, #022c22 0%, #064e3b 50%, #10b981 100%)' },
+                  { name: 'Cyberpunk', bg: 'linear-gradient(135deg, #2e1065 0%, #581c87 50%, #c026d3 100%)' },
+                  { name: 'Stealth Carbon', bg: 'linear-gradient(135deg, #0a0a0a 0%, #171717 50%, #262626 100%)' },
+                  { name: 'Deep Space', bg: 'linear-gradient(135deg, #030712 0%, #111827 50%, #1f2937 100%)' },
+                  { name: 'Crimson Flame', bg: 'linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #dc2626 100%)' }
+                ].map((preset, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleSetPresetWallpaper(preset.bg)}
+                    style={{
+                      height: '56px',
+                      borderRadius: '12px',
+                      background: preset.bg,
+                      border: '1.5px solid rgba(255,255,255,0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      textAlign: 'center',
+                      padding: '4px',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                      transition: 'transform 0.15s ease'
+                    }}
+                  >
+                    {preset.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Remove / Reset Button */}
+            {customWallpaper && (
+              <button
+                onClick={handleRemoveWallpaper}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#f87171',
+                  borderRadius: '12px',
+                  padding: '10px',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Trash2 size={15} /> Remove Custom Wallpaper
+              </button>
             )}
           </div>
         </div>
