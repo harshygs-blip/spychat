@@ -312,6 +312,13 @@ export const App: React.FC = () => {
       const isCurrentlyInThisChat = activeConversation && activeConversation.id === msg.conversation_id;
 
       if (isFromOther) {
+        // Acknowledge delivery so server purges the message from server database immediately (Zero-Knowledge)
+        socketService.emit('ack_delivered', {
+          messageId: msg.id,
+          conversationId: msg.conversation_id,
+          senderId: msg.sender_id
+        });
+
         // Play notification chime & vibrate
         playMessageChime();
 

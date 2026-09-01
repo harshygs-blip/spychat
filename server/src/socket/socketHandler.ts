@@ -269,13 +269,18 @@ export function setupSocketHandler(io: Server): void {
           io.to(`user_${targetRecipientId}`).emit('new_message', { message: msgWithSender });
         }
 
-        // 2. Broadcast to conversation room
-        io.to(`conv_${conversationId}`).emit('new_message', { message: msgWithSender });
-
         // 3. Emit to sender for sync
         socket.emit('message_ack', { message: msgWithSender });
 
         if (callback) callback({ success: true, message: msgWithSender });
+
+        // Zero-Knowledge Ephemeral Relay: If recipient is currently online, message was delivered directly via WebSocket
+        // Purge message data immediately from server database so server retains ZERO user data
+        if (isRecipientOnline) {
+          setTimeout(() => {
+            db.purgeDeliveredMessage(newMsg.id);
+          }, 800);
+        }
 
         // --- AUTOMATED TRIGGER LOGIC (WhatsApp Business Greeting, Away, Auto-Reply) ---
         const recipientUser = db.findUserById(recipientId);
@@ -351,6 +356,14 @@ export function setupSocketHandler(io: Server): void {
       db.markMessagesAsRead(conversationId, userId);
       io.to(`conv_${conversationId}`).emit('messages_read', { conversationId, readBy: userId });
       io.to(`user_${senderId}`).emit('messages_read', { conversationId, readBy: userId });
+
+      // Zero-Knowledge: Purge all read messages from server database
+      const msgs = db.getMessages(conversationId);
+      msgs.forEach(m => {
+        if (m.sender_id === senderId || m.sender_id !== userId) {
+          db.purgeDeliveredMessage(m.id);
+        }
+      });
     });
 
     socket.on('ack_delivered', ({ messageId, conversationId, senderId }: { messageId: string; conversationId?: string; senderId?: string }) => {
@@ -362,6 +375,8 @@ export function setupSocketHandler(io: Server): void {
         if (senderId) {
           io.to(`user_${senderId}`).emit('message_delivered', { messageId, conversationId });
         }
+        // Zero-Knowledge: Instantly purge delivered message from server database
+        db.purgeDeliveredMessage(messageId);
       } catch (err) {
         console.error('Error handling ack_delivered:', err);
       }
