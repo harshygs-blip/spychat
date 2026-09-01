@@ -461,9 +461,18 @@ export const ChatList: React.FC<ChatListProps> = ({
                       justifyContent: 'center',
                       fontWeight: '700',
                       fontSize: '16px',
-                      color: 'var(--accent-primary)'
+                      color: 'var(--accent-primary)',
+                      overflow: 'hidden'
                     }}>
-                      {peer ? peer.display_name.substring(0, 2).toUpperCase() : '??'}
+                      {peer?.avatar_url ? (
+                        <img
+                          src={peer.avatar_url}
+                          alt={peer.display_name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        peer ? peer.display_name.substring(0, 2).toUpperCase() : '??'
+                      )}
                     </div>
                     {/* Online indicator */}
                     <div style={{

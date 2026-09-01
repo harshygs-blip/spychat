@@ -1268,9 +1268,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: '700',
-              color: 'var(--accent-cyan)'
+              color: 'var(--accent-cyan)',
+              overflow: 'hidden'
             }}>
-              {peerInitials}
+              {peer?.avatar_url ? (
+                <img
+                  src={peer.avatar_url}
+                  alt={peerDisplayName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                peerInitials
+              )}
             </div>
             <div>
               <div style={{ fontWeight: '700', fontSize: '15px' }}>

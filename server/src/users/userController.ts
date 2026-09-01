@@ -75,6 +75,10 @@ export function updateProfile(req: AuthenticatedRequest, res: Response): void {
   const avatarId = body.avatar_id || body.avatarId;
   if (avatarId) updates.avatar_id = avatarId;
 
+  if (body.avatar_url !== undefined || body.avatarUrl !== undefined) {
+    updates.avatar_url = body.avatar_url !== undefined ? body.avatar_url : body.avatarUrl;
+  }
+
   const publicKey = body.public_key || body.publicKey;
   if (publicKey) updates.public_key = publicKey;
 
@@ -100,6 +104,7 @@ export function updateProfile(req: AuthenticatedRequest, res: Response): void {
       username: updated.username,
       display_name: updated.display_name,
       avatar_id: updated.avatar_id,
+      avatar_url: updated.avatar_url,
       email: updated.email,
       privacy: updated.privacy,
       app_pin: updated.app_pin,

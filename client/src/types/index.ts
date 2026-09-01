@@ -20,6 +20,7 @@ export interface User {
   username: string; // e.g. "ghost_49"
   display_name: string;
   avatar_id: string;
+  avatar_url?: string;
   email?: string;
   public_key?: string;
   last_seen?: string;

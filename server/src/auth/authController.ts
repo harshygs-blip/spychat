@@ -139,6 +139,7 @@ export async function signup(req: Request, res: Response): Promise<void> {
         username: newUser.username,
         display_name: newUser.display_name,
         avatar_id: newUser.avatar_id,
+        avatar_url: newUser.avatar_url,
         email: newUser.email,
         phone_number: newUser.phone_number,
         privacy: newUser.privacy
@@ -215,6 +216,7 @@ export async function login(req: Request, res: Response): Promise<void> {
         username: user.username,
         display_name: user.display_name,
         avatar_id: user.avatar_id,
+        avatar_url: user.avatar_url,
         email: user.email,
         privacy: user.privacy
       },
@@ -270,6 +272,7 @@ export function getMe(req: AuthenticatedRequest, res: Response): void {
       username: user.username,
       display_name: user.display_name,
       avatar_id: user.avatar_id,
+      avatar_url: user.avatar_url,
       email: user.email,
       privacy: user.privacy,
       app_pin: user.app_pin,

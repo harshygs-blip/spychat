@@ -26,6 +26,7 @@ export interface User {
   username: string;
   display_name: string;
   avatar_id: string;
+  avatar_url?: string;
   public_key?: string;
   created_at: string;
   updated_at: string;

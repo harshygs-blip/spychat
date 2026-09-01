@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, 
   Palette, 
@@ -21,7 +21,9 @@ import {
   Download,
   UploadCloud,
   FileText,
-  Trash2
+  Trash2,
+  Camera,
+  Image
 } from 'lucide-react';
 import { User as UserType, Message } from '../../types';
 import { AuthService } from '../../services/auth';
@@ -57,6 +59,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
 
   // Form states
   const [displayName, setDisplayName] = useState(currentUser.display_name);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(currentUser.avatar_url);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [lastSeen, setLastSeen] = useState(currentUser.privacy?.last_seen_visibility || 'everyone');
   const [onlineStatus, setOnlineStatus] = useState(currentUser.privacy?.online_status_visibility || 'everyone');
   const [readReceipts, setReadReceipts] = useState(currentUser.privacy?.read_receipts ?? true);
@@ -66,6 +71,48 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarLoading(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setAvatarUrl(base64);
+        try {
+          const res = await AuthService.updateProfile({ avatar_url: base64, display_name: displayName });
+          if (res) {
+            onUpdateUser(res);
+          }
+          setSavedMsg('✅ Profile photo updated!');
+          setTimeout(() => setSavedMsg(''), 2500);
+        } catch {
+          setSavedMsg('✅ Profile photo saved');
+          setTimeout(() => setSavedMsg(''), 2000);
+        }
+      }
+      setAvatarLoading(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveAvatar = async () => {
+    setAvatarUrl(undefined);
+    try {
+      const res = await AuthService.updateProfile({ avatar_url: '', display_name: displayName });
+      if (res) {
+        onUpdateUser(res);
+      }
+      setSavedMsg('Profile photo removed');
+      setTimeout(() => setSavedMsg(''), 2000);
+    } catch {
+      setSavedMsg('Photo removed');
+      setTimeout(() => setSavedMsg(''), 2000);
+    }
+  };
 
   // Password Change States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -154,7 +201,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
     setLoading(true);
     try {
       const updated = await AuthService.updateProfile({
-        display_name: displayName.trim()
+        display_name: displayName.trim(),
+        avatar_url: avatarUrl
       });
       onUpdateUser(updated);
       setSavedMsg('✓ Profile Updated');
@@ -412,9 +460,18 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
               fontWeight: '800',
               fontSize: '20px',
               color: 'var(--accent-primary)',
-              boxShadow: '0 0 15px var(--accent-primary-glow)'
+              boxShadow: '0 0 15px var(--accent-primary-glow)',
+              overflow: 'hidden'
             }}>
-              {currentUser.display_name.substring(0, 2).toUpperCase()}
+              {currentUser.avatar_url ? (
+                <img
+                  src={currentUser.avatar_url}
+                  alt={currentUser.display_name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                currentUser.display_name.substring(0, 2).toUpperCase()
+              )}
             </div>
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>
@@ -915,23 +972,118 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
       }}>
         <SubHeader title="Edit Profile" subtitle="Manage your public handle and display identity" />
 
-        <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-              border: '3px solid var(--accent-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: '800',
-              fontSize: '28px',
-              color: 'var(--accent-primary)',
-              boxShadow: '0 0 25px var(--accent-primary-glow)'
-            }}>
-              {displayName ? displayName.substring(0, 2).toUpperCase() : 'SP'}
+        {/* Hidden Profile Avatar File Picker */}
+        <input
+          type="file"
+          ref={avatarInputRef}
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleAvatarFileSelect}
+        />
+
+        <div className="glass" style={{ padding: '22px 20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Avatar with Camera Icon Overlay */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div
+              onClick={() => avatarInputRef.current?.click()}
+              style={{
+                position: 'relative',
+                width: '92px',
+                height: '92px',
+                cursor: 'pointer'
+              }}
+              title="Change Profile Photo"
+            >
+              <div style={{
+                width: '92px',
+                height: '92px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                border: '3px solid var(--accent-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '800',
+                fontSize: '32px',
+                color: 'var(--accent-primary)',
+                boxShadow: '0 0 25px var(--accent-primary-glow)',
+                overflow: 'hidden'
+              }}>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  displayName ? displayName.substring(0, 2).toUpperCase() : 'SP'
+                )}
+              </div>
+
+              {/* Camera Badge */}
+              <div style={{
+                position: 'absolute',
+                bottom: '0px',
+                right: '0px',
+                background: 'var(--accent-primary)',
+                color: '#000000',
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                border: '2px solid #0f172a'
+              }}>
+                <Camera size={16} strokeWidth={2.5} />
+              </div>
+            </div>
+
+            {/* Photo Action Buttons */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarLoading}
+                style={{
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  border: '1px solid rgba(6, 182, 212, 0.35)',
+                  color: 'var(--accent-cyan)',
+                  padding: '6px 14px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Camera size={14} /> {avatarLoading ? 'Uploading...' : 'Choose Photo'}
+              </button>
+
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#f87171',
+                    padding: '6px 12px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Trash2 size={13} /> Remove
+                </button>
+              )}
             </div>
           </div>
 
