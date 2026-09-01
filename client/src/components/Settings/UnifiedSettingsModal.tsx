@@ -638,7 +638,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
           {/* 9. Share & Download App APK 📲 */}
           {onOpenShareApp && (
             <div
-              onClick={onOpenShareApp}
+              onClick={() => {
+                localStorage.setItem('spychat_seen_build_version', APP_VERSION);
+                onOpenShareApp();
+              }}
               style={{
                 padding: '14px 16px',
                 display: 'flex',
@@ -646,25 +649,54 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
                 justifyContent: 'space-between',
                 cursor: 'pointer',
                 borderTop: '1px solid var(--border-color)',
-                background: 'rgba(6, 182, 212, 0.06)'
+                background: 'rgba(6, 182, 212, 0.08)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  boxShadow: '0 0 12px rgba(6, 182, 212, 0.35)'
-                }}>
-                  <Smartphone size={19} />
+                <div style={{ position: 'relative' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff',
+                    boxShadow: '0 0 14px rgba(6, 182, 212, 0.45)'
+                  }}>
+                    <Smartphone size={19} />
+                  </div>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-3px',
+                      right: '-3px',
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      border: '2px solid #040711',
+                      boxShadow: '0 0 8px #10b981'
+                    }}
+                    className="animate-pulse"
+                  />
                 </div>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--accent-cyan)' }}>Share SPYCHAT App (APK)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--accent-cyan)' }}>Share SPYCHAT App (APK)</span>
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      background: 'rgba(16, 185, 129, 0.2)',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      color: '#34d399',
+                      padding: '1px 6px',
+                      borderRadius: '8px'
+                    }}>
+                      {APP_VERSION}
+                    </span>
+                  </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Direct APK download & WhatsApp share</div>
                 </div>
               </div>

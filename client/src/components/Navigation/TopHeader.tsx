@@ -1,6 +1,7 @@
 import React from 'react';
 import { Shield, Lock, Search, Palette, Settings, Share2 } from 'lucide-react';
 import { User } from '../../types';
+import { APP_VERSION } from '../../config/version';
 
 interface TopHeaderProps {
   currentUser: User | null;
@@ -19,6 +20,21 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenSettings,
   onOpenShareApp
 }) => {
+  const [hasNewBuild, setHasNewBuild] = React.useState(false);
+
+  React.useEffect(() => {
+    const seen = localStorage.getItem('spychat_seen_build_version');
+    if (seen !== APP_VERSION) {
+      setHasNewBuild(true);
+    }
+  }, []);
+
+  const handleShareClick = () => {
+    localStorage.setItem('spychat_seen_build_version', APP_VERSION);
+    setHasNewBuild(false);
+    if (onOpenShareApp) onOpenShareApp();
+  };
+
   return (
     <header className="glass" style={{
       padding: '10px 16px',
@@ -66,26 +82,45 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {/* Share APK Button 📲 */}
+        {/* Share APK Button 📲 (With New Build Glowing Pulsing Dot) */}
         {onOpenShareApp && (
-          <button
-            onClick={onOpenShareApp}
-            title="Share SPYCHAT App APK"
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              background: 'rgba(6, 182, 212, 0.12)',
-              border: '1px solid rgba(6, 182, 212, 0.35)',
-              color: 'var(--accent-cyan)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-          >
-            <Share2 size={17} />
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={handleShareClick}
+              title={`Share SPYCHAT App APK (${APP_VERSION})`}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: hasNewBuild ? 'rgba(6, 182, 212, 0.25)' : 'rgba(6, 182, 212, 0.12)',
+                border: hasNewBuild ? '1.5px solid var(--accent-cyan)' : '1px solid rgba(6, 182, 212, 0.35)',
+                color: 'var(--accent-cyan)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: hasNewBuild ? '0 0 15px rgba(6, 182, 212, 0.5)' : 'none'
+              }}
+            >
+              <Share2 size={17} />
+            </button>
+            {hasNewBuild && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-2px',
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  border: '2px solid #040711',
+                  boxShadow: '0 0 10px #10b981'
+                }}
+                className="animate-pulse"
+              />
+            )}
+          </div>
         )}
 
         {/* Search Users Button */}
