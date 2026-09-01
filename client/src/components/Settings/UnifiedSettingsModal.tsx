@@ -315,7 +315,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
           height: '100%',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
-          padding: '16px 14px 170px 14px',
+          padding: '16px 14px 220px 14px',
           display: 'flex',
           flexDirection: 'column',
           gap: '14px',
@@ -323,6 +323,66 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
           overscrollBehaviorY: 'contain'
         }}
       >
+        {/* QUICK CATEGORY HORIZONTAL SLIDER */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            paddingBottom: '2px',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          {[
+            { id: 'profile', label: 'Profile', icon: User, color: '#38bdf8' },
+            { id: 'theme', label: 'Theme', icon: Palette, color: '#00e676' },
+            { id: 'privacy', label: 'Privacy', icon: ShieldCheck, color: '#10b981' },
+            { id: 'security', label: 'App Lock', icon: Lock, color: '#06b6d4' },
+            { id: 'vault', label: 'Vault', icon: Star, color: '#f59e0b' },
+            { id: 'business', label: 'Business', icon: Bot, color: '#a855f7' },
+            { id: 'backup', label: 'Backup', icon: Download, color: '#ec4899' },
+            { id: 'notifications', label: 'Sounds', icon: Bell, color: '#eab308' },
+            { id: 'about', label: 'About', icon: Info, color: '#94a3b8' }
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.id === 'business') {
+                    onNavigateToBusiness();
+                  } else {
+                    setCurrentPage(item.id as SettingsSubPage);
+                  }
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '14px',
+                  padding: '8px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: '#ffffff',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Icon size={15} color={item.color} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* User Profile Header Card */}
         <div
           onClick={() => setCurrentPage('profile')}
@@ -847,11 +907,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         height: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        padding: '16px 14px 130px 14px',
+        padding: '16px 14px 220px 14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y pan-x'
       }}>
         <SubHeader title="Edit Profile" subtitle="Manage your public handle and display identity" />
 
@@ -1054,11 +1114,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         height: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        padding: '16px 14px 130px 14px',
+        padding: '16px 14px 220px 14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '14px',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y pan-x'
       }}>
         <SubHeader title="Theme & Appearance" subtitle="Select your preferred color palette" />
 
@@ -1138,11 +1198,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         height: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        padding: '16px 14px 130px 14px',
+        padding: '16px 14px 220px 14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y pan-x'
       }}>
         <SubHeader title="Privacy & Stealth" subtitle="Control visibility, read receipts and status" />
 
@@ -1233,11 +1293,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         height: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        padding: '16px 14px 130px 14px',
+        padding: '16px 14px 220px 14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y pan-x'
       }}>
         <SubHeader title="4-Digit Passcode Lock" subtitle="Protect chat database with local PIN encryption" />
 
@@ -1325,11 +1385,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         height: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        padding: '16px 14px 130px 14px',
+        padding: '16px 14px 220px 14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '14px',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y pan-x'
       }}>
         <SubHeader title="Saved Messages Vault" subtitle="Your bookmarked personal encrypted notes" />
 
@@ -1407,11 +1467,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         height: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        padding: '16px 14px 130px 14px',
+        padding: '16px 14px 220px 14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y pan-x'
       }}>
         <SubHeader title="Encrypted Backup" subtitle="Download and restore chat data locally" />
 
@@ -1460,11 +1520,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         height: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        padding: '16px 14px 130px 14px',
+        padding: '16px 14px 220px 14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        touchAction: 'pan-y'
+        touchAction: 'pan-y pan-x'
       }}>
         <SubHeader title="Notifications & Sounds" subtitle="Calling ringtone and alert configuration" />
 
@@ -1508,11 +1568,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
       height: '100%',
       overflowY: 'auto',
       WebkitOverflowScrolling: 'touch',
-      padding: '16px 14px 130px 14px',
+      padding: '16px 14px 220px 14px',
       display: 'flex',
       flexDirection: 'column',
       gap: '16px',
-      touchAction: 'pan-y'
+      touchAction: 'pan-y pan-x'
     }}>
       <SubHeader title="About SPYCHAT" subtitle="End-to-End Encrypted Zero-Knowledge Messenger" />
 

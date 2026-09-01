@@ -862,7 +862,7 @@ export const App: React.FC = () => {
 
         {/* Panel 5: Settings */}
         <div
-          className="responsive-container smooth-scroll-panel"
+          className="responsive-container"
           style={{
             width: '100%',
             minWidth: '100%',
@@ -871,10 +871,7 @@ export const App: React.FC = () => {
             scrollSnapAlign: 'start',
             display: 'flex',
             flexDirection: 'column',
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehaviorY: 'contain',
-            touchAction: 'pan-y pan-x'
+            overflow: 'hidden'
           }}
         >
           <UnifiedSettingsModal
