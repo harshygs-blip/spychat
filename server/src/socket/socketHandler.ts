@@ -105,9 +105,19 @@ export function setupSocketHandler(io: Server): void {
       }
     });
 
-    // Delete Message (Telegram Style: For Me or For Both)
+    // Delete Message (15-Minute Window for 'Delete for Both' / WhatsApp & Telegram style)
     socket.on('delete_message', ({ conversationId, messageId, deleteForBoth }: { conversationId: string; messageId: string; deleteForBoth?: boolean }) => {
+      const msg = db.findMessageById(messageId);
       if (deleteForBoth !== false) {
+        if (msg) {
+          const ageMs = Date.now() - new Date(msg.created_at).getTime();
+          // 15 minutes limit (+ 30s network grace)
+          if (msg.sender_id === userId && ageMs > 15 * 60 * 1000 + 30000) {
+            // Expired for both, delete locally for requester only
+            socket.emit('message_deleted', { conversationId, messageId });
+            return;
+          }
+        }
         db.deleteMessageCompletely(messageId);
         io.to(`conv_${conversationId}`).emit('message_deleted', {
           conversationId,
@@ -145,8 +155,16 @@ export function setupSocketHandler(io: Server): void {
       }
     });
 
-    // Edit Message
+    // Edit Message (Enforcing 15-Minute Window)
     socket.on('edit_message', ({ conversationId, messageId, ciphertext, iv }: { conversationId: string; messageId: string; ciphertext: string; iv?: string }) => {
+      const msg = db.findMessageById(messageId);
+      if (msg) {
+        const ageMs = Date.now() - new Date(msg.created_at).getTime();
+        if (msg.sender_id !== userId || ageMs > 15 * 60 * 1000 + 30000) {
+          socket.emit('error_notification', { message: 'Editing is only allowed within 15 minutes of sending.' });
+          return;
+        }
+      }
       const updatedMsg = db.editMessage(messageId, ciphertext, iv);
       if (updatedMsg) {
         io.to(`conv_${conversationId}`).emit('message_edited', {

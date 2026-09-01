@@ -144,6 +144,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     { trigger: '/secure', response: '🛡️ SPYCHAT is 100% end-to-end encrypted with zero tracking.', message_type: 'text' }
   ];
 
+  // 15-Minute Edit & Delete Window Helpers
+  const isWithin15Min = (dateStr: string) => {
+    const ageMs = Date.now() - new Date(dateStr).getTime();
+    return ageMs <= 15 * 60 * 1000;
+  };
+
+  const getRemaining15MinBadge = (dateStr: string) => {
+    const ageMs = Date.now() - new Date(dateStr).getTime();
+    const remainingMs = 15 * 60 * 1000 - ageMs;
+    if (remainingMs <= 0) return null;
+    const mins = Math.ceil(remainingMs / (60 * 1000));
+    return `${mins}m left`;
+  };
+
   const catalogItems: CatalogItem[] = currentUser.business_automation?.catalog || [];
 
   const scrollToBottom = () => {
@@ -2005,25 +2019,48 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 </button>
 
                 {selectedMessage.sender_id === currentUser.id && selectedMessage.message_type === 'text' && (
-                  <button
-                    onClick={() => handleStartEdit(selectedMessage)}
-                    title="Edit Message"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.06)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--accent-cyan)',
-                      padding: '6px 10px',
-                      borderRadius: '10px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '12px',
-                      fontWeight: '700'
-                    }}
-                  >
-                    <Edit2 size={15} /> Edit
-                  </button>
+                  isWithin15Min(selectedMessage.created_at) ? (
+                    <button
+                      onClick={() => handleStartEdit(selectedMessage)}
+                      title="Edit Message (Available within 15 mins of sending)"
+                      style={{
+                        background: 'rgba(6, 182, 212, 0.15)',
+                        border: '1px solid rgba(6, 182, 212, 0.4)',
+                        color: 'var(--accent-cyan)',
+                        padding: '6px 10px',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '12px',
+                        fontWeight: '700'
+                      }}
+                    >
+                      <Edit2 size={14} /> Edit
+                      <span style={{ fontSize: '10px', opacity: 0.85, fontWeight: '800' }}>({getRemaining15MinBadge(selectedMessage.created_at)})</span>
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      title="Edit window expired (15-minute limit)"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        color: 'var(--text-muted)',
+                        padding: '6px 10px',
+                        borderRadius: '10px',
+                        cursor: 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '12px',
+                        opacity: 0.5
+                      }}
+                    >
+                      <Edit2 size={14} /> Edit (Expired)
+                    </button>
+                  )
                 )}
 
                 {/* Star / Save to Vault button */}
@@ -2703,17 +2740,28 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             </p>
 
             {peer && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 0' }}>
-                <input
-                  type="checkbox"
-                  checked={deleteMsgForBoth}
-                  onChange={(e) => setDeleteMsgForBoth(e.target.checked)}
-                  style={{ width: '18px', height: '18px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
-                  Also delete for {peer.display_name}
-                </span>
-              </label>
+              isWithin15Min(msgToDelete.created_at) ? (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 10px', borderRadius: '12px', background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+                  <input
+                    type="checkbox"
+                    checked={deleteMsgForBoth}
+                    onChange={(e) => setDeleteMsgForBoth(e.target.checked)}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '13.5px', color: '#ffffff', fontWeight: '700' }}>
+                      Also delete for {peer.display_name}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: '600' }}>
+                      ⏳ {getRemaining15MinBadge(msgToDelete.created_at)} remaining to delete for everyone
+                    </span>
+                  </div>
+                </label>
+              ) : (
+                <div style={{ padding: '8px 12px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid var(--border-color)', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  ⏳ 15-minute window to delete for everyone has expired. This message will be deleted for you only.
+                </div>
+              )
             )}
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>

@@ -547,6 +547,10 @@ class Database {
     return true;
   }
 
+  public findMessageById(messageId: string): Message | undefined {
+    return this.data.messages.find(m => m.id === messageId);
+  }
+
   public editMessage(messageId: string, newCiphertext: string, newIv?: string): Message | undefined {
     const msg = this.data.messages.find(m => m.id === messageId);
     if (!msg) return undefined;
