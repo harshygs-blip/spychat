@@ -748,16 +748,19 @@ export const App: React.FC = () => {
         }}
       >
         {/* Panel 1: Chats */}
-        <div style={{
-          width: '100%',
-          minWidth: '100%',
-          maxWidth: '100%',
-          height: '100%',
-          scrollSnapAlign: 'start',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        <div
+          className="responsive-container"
+          style={{
+            width: '100%',
+            minWidth: '100%',
+            maxWidth: '100%',
+            height: '100%',
+            scrollSnapAlign: 'start',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
           <ChatList
             conversations={conversations}
             onSelectConversation={(conv) => {
@@ -772,16 +775,19 @@ export const App: React.FC = () => {
         </div>
 
         {/* Panel 2: Spytus */}
-        <div style={{
-          width: '100%',
-          minWidth: '100%',
-          maxWidth: '100%',
-          height: '100%',
-          scrollSnapAlign: 'start',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        <div
+          className="responsive-container"
+          style={{
+            width: '100%',
+            minWidth: '100%',
+            maxWidth: '100%',
+            height: '100%',
+            scrollSnapAlign: 'start',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
           <SpytusModal
             currentUser={currentUser}
             onOpenChatWithPeer={(peerId) => {
@@ -792,16 +798,19 @@ export const App: React.FC = () => {
         </div>
 
         {/* Panel 3: Calls */}
-        <div style={{
-          width: '100%',
-          minWidth: '100%',
-          maxWidth: '100%',
-          height: '100%',
-          scrollSnapAlign: 'start',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        <div
+          className="responsive-container"
+          style={{
+            width: '100%',
+            minWidth: '100%',
+            maxWidth: '100%',
+            height: '100%',
+            scrollSnapAlign: 'start',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
           <CallLogs
             onStartCall={(peer, type) => handleStartCall(peer, type)}
             onOpenChat={(peer) => handleSelectUserFromSearch(peer, 'chat')}
@@ -809,16 +818,19 @@ export const App: React.FC = () => {
         </div>
 
         {/* Panel 4: Business */}
-        <div style={{
-          width: '100%',
-          minWidth: '100%',
-          maxWidth: '100%',
-          height: '100%',
-          scrollSnapAlign: 'start',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        <div
+          className="responsive-container"
+          style={{
+            width: '100%',
+            minWidth: '100%',
+            maxWidth: '100%',
+            height: '100%',
+            scrollSnapAlign: 'start',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
           <BusinessAutomationModal
             currentUser={currentUser}
             onUpdate={(u) => setCurrentUser(u)}
@@ -827,7 +839,7 @@ export const App: React.FC = () => {
 
         {/* Panel 5: Settings */}
         <div
-          className="smooth-scroll-panel"
+          className="responsive-container smooth-scroll-panel"
           style={{
             width: '100%',
             minWidth: '100%',

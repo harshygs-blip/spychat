@@ -218,6 +218,53 @@ body {
   box-shadow: 0 0 12px var(--accent-primary-glow);
 }
 
+/* =========================================================
+   COMPREHENSIVE RESPONSIVE DEVICE SYSTEM (Mobile / Tablet / PC)
+   ========================================================= */
+
+/* Responsive Content Container for Tabs & Large Displays */
+.responsive-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .responsive-container {
+    max-width: 820px;
+  }
+  
+  .glass-nav {
+    max-width: 640px;
+    margin: 0 auto 8px auto;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@media (min-width: 1200px) {
+  .responsive-container {
+    max-width: 960px;
+  }
+}
+
+/* Small screen optimizations (phones <= 360px) */
+@media (max-width: 360px) {
+  .glass-nav {
+    padding: 6px 2px 8px 2px !important;
+  }
+  
+  .glass-nav button span {
+    font-size: 9.5px !important;
+  }
+
+  .glass-nav button svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
+
 .btn-primary {
   background: var(--accent-gradient);
   color: #040810;
