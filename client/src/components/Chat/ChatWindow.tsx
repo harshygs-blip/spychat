@@ -33,7 +33,9 @@ import {
   Sparkles,
   Shield,
   Reply,
-  Music
+  Music,
+  Download,
+  Share2
 } from 'lucide-react';
 import { Conversation, Message, User, AutoReplyRule, CatalogItem } from '../../types';
 import { socketService } from '../../services/socket';
@@ -125,6 +127,44 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [translationMap, setTranslationMap] = useState<Record<string, { lang: string; text: string }>>({});
   const [translateTargetMsg, setTranslateTargetMsg] = useState<Message | null>(null);
   const [burnerActiveTimers, setBurnerActiveTimers] = useState<Record<string, number>>({});
+
+  // Full-Screen Media Lightbox
+  const [fullscreenMedia, setFullscreenMedia] = useState<{
+    url: string;
+    type: 'image' | 'video';
+    senderName: string;
+    timestamp: string;
+  } | null>(null);
+
+  // Long-press timer ref for message bubbles (Press & Hold only)
+  const longPressTimerRef = useRef<any>(null);
+  const isLongPressTriggeredRef = useRef(false);
+
+  const handleMessageTouchStart = (msg: Message) => {
+    isLongPressTriggeredRef.current = false;
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressTriggeredRef.current = true;
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(40);
+      }
+      setSelectedMessage(msg);
+    }, 450);
+  };
+
+  const handleMessageTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleMessageTouchCancel = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileFilter, setFileFilter] = useState<'image/*' | 'video/*' | 'audio/*' | '*/*'>('*/*');
@@ -1546,14 +1586,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   e.preventDefault();
                   setSelectedMessage(msg);
                 }}
-                onClick={() => setSelectedMessage(selectedMessage?.id === msg.id ? null : msg)}
+                onTouchStart={() => handleMessageTouchStart(msg)}
+                onTouchEnd={handleMessageTouchEnd}
+                onTouchCancel={handleMessageTouchCancel}
+                onTouchMove={handleMessageTouchCancel}
+                onMouseDown={() => handleMessageTouchStart(msg)}
+                onMouseUp={handleMessageTouchEnd}
+                onMouseLeave={handleMessageTouchCancel}
                 style={{
                   alignSelf: isMe ? 'flex-end' : 'flex-start',
                   maxWidth: '82%',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '2px',
-                  cursor: 'pointer'
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none'
                 }}
               >
                 <div style={{
@@ -1662,25 +1709,85 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         </div>
                       )}
 
-                      {/* IMAGE MESSAGE (Regular) */}
+                      {/* IMAGE MESSAGE (Regular - Tap to Full Screen Lightbox) */}
                       {!msg.view_once && msg.message_type === 'image' && msg.media_url && (
-                        <div style={{ borderRadius: '12px', overflow: 'hidden' }}>
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFullscreenMedia({
+                              url: msg.media_url!,
+                              type: 'image',
+                              senderName: isMe ? 'You' : (peer?.display_name || 'Contact'),
+                              timestamp: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            });
+                          }}
+                          style={{
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            position: 'relative'
+                          }}
+                        >
                           <img
                             src={msg.media_url}
                             alt="Shared Photo"
-                            style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', display: 'block', borderRadius: '12px' }}
+                            style={{
+                              width: '100%',
+                              maxHeight: '260px',
+                              objectFit: 'cover',
+                              display: 'block',
+                              borderRadius: '12px'
+                            }}
                           />
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '6px',
+                            right: '6px',
+                            background: 'rgba(0, 0, 0, 0.65)',
+                            backdropFilter: 'blur(4px)',
+                            padding: '2px 7px',
+                            borderRadius: '8px',
+                            fontSize: '10.5px',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: '700'
+                          }}>
+                            <Eye size={12} /> Full view
+                          </div>
                         </div>
                       )}
 
-                      {/* VIDEO MESSAGE (Regular) */}
+                      {/* VIDEO MESSAGE (Regular - Tap to Full Screen Lightbox) */}
                       {!msg.view_once && msg.message_type === 'video' && msg.media_url && (
-                        <div style={{ borderRadius: '12px', overflow: 'hidden' }}>
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFullscreenMedia({
+                              url: msg.media_url!,
+                              type: 'video',
+                              senderName: isMe ? 'You' : (peer?.display_name || 'Contact'),
+                              timestamp: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            });
+                          }}
+                          style={{
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            position: 'relative'
+                          }}
+                        >
                           <video
                             src={msg.media_url}
                             controls
                             playsInline
-                            style={{ width: '100%', maxHeight: '240px', display: 'block', borderRadius: '12px' }}
+                            style={{
+                              width: '100%',
+                              maxHeight: '260px',
+                              display: 'block',
+                              borderRadius: '12px'
+                            }}
                           />
                         </div>
                       )}
@@ -3645,6 +3752,152 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           pointerEvents: 'none'
         }}>
           {syncToast}
+        </div>
+      )}
+
+      {/* FULLSCREEN PHOTO & VIDEO LIGHTBOX VIEWER */}
+      {fullscreenMedia && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.96)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 99999,
+            animation: 'fadeIn 0.2s ease'
+          }}
+          onClick={() => setFullscreenMedia(null)}
+        >
+          {/* Top Bar with Safe Area */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              paddingTop: 'max(46px, calc(env(safe-area-inset-top, 0px) + 12px))',
+              paddingBottom: '12px',
+              paddingLeft: '16px',
+              paddingRight: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%)',
+              zIndex: 10
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                onClick={() => setFullscreenMedia(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '38px',
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <div>
+                <div style={{ color: '#ffffff', fontWeight: '800', fontSize: '15px' }}>
+                  {fullscreenMedia.senderName}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '11.5px' }}>
+                  {fullscreenMedia.timestamp}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions: Download & Close */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <a
+                href={fullscreenMedia.url}
+                download={fullscreenMedia.type === 'image' ? 'spychat-photo.jpg' : 'spychat-video.mp4'}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: 'rgba(6, 182, 212, 0.25)',
+                  border: '1px solid rgba(6, 182, 212, 0.4)',
+                  borderRadius: '50%',
+                  width: '38px',
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-cyan)',
+                  cursor: 'pointer',
+                  textDecoration: 'none'
+                }}
+                title="Download Media"
+              >
+                <Download size={18} />
+              </a>
+
+              <button
+                onClick={() => setFullscreenMedia(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '38px',
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  cursor: 'pointer'
+                }}
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Media Body Container */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+              overflow: 'hidden'
+            }}
+          >
+            {fullscreenMedia.type === 'image' ? (
+              <img
+                src={fullscreenMedia.url}
+                alt="Full screen photo"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '85vh',
+                  objectFit: 'contain',
+                  borderRadius: '14px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.95)'
+                }}
+              />
+            ) : (
+              <video
+                src={fullscreenMedia.url}
+                controls
+                autoPlay
+                playsInline
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '85vh',
+                  borderRadius: '14px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.95)'
+                }}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
