@@ -185,6 +185,17 @@ export const SpytusModal: React.FC<SpytusModalProps> = ({
   const myStories = stories.filter(s => s.user_id === currentUser.id);
   const friendStories = stories.filter(s => s.user_id !== currentUser.id);
 
+  const getRemainingStoryTime = (createdAt: string, expiresAt?: string) => {
+    const createdTime = new Date(createdAt).getTime();
+    const expiryTime = expiresAt ? new Date(expiresAt).getTime() : (createdTime + 24 * 60 * 60 * 1000);
+    const diffMs = expiryTime - Date.now();
+    if (diffMs <= 0) return 'Expiring soon';
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours > 0) return `${hours}h left`;
+    return `${mins}m left`;
+  };
+
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Hidden File Picker */}
@@ -342,11 +353,14 @@ export const SpytusModal: React.FC<SpytusModalProps> = ({
               <div style={{ fontSize: '15px', fontWeight: '800', color: '#ffffff' }}>
                 {myStories.length > 0 ? 'My Spytus' : 'Add to My Spytus'}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 {myStories.length > 0 ? (
                   <>
                     <Eye size={13} color="var(--accent-primary)" />
-                    <span>{myStories[0].viewers.length} views • Tap to view</span>
+                    <span>{myStories[0].viewers.length} views</span>
+                    <span>•</span>
+                    <Clock size={12} color="var(--accent-cyan)" />
+                    <span style={{ color: 'var(--accent-cyan)', fontWeight: '700' }}>{getRemainingStoryTime(myStories[0].created_at, myStories[0].expires_at)}</span>
                   </>
                 ) : (
                   <span>Share 24-hour disappearing updates</span>

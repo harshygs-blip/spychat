@@ -668,8 +668,10 @@ class Database {
     const now = Date.now();
     return this.data.spytus_stories
       .filter(s => {
-        // Expiration check (24 hours)
-        if (new Date(s.expires_at).getTime() <= now) return false;
+        // Guaranteed 24-Hour Expiration Check
+        const storyCreated = new Date(s.created_at).getTime();
+        const storyExpiry = s.expires_at ? new Date(s.expires_at).getTime() : (storyCreated + 24 * 60 * 60 * 1000);
+        if (now > storyExpiry && (now - storyCreated > 24 * 60 * 60 * 1000)) return false;
 
         // Author always sees their own story
         if (!requestUserId || s.user_id === requestUserId) return true;
