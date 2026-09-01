@@ -773,7 +773,10 @@ export const App: React.FC = () => {
           flexDirection: 'column',
           overflow: 'hidden'
         }}>
-          <CallLogs onStartCall={(peer, type) => handleStartCall(peer, type)} />
+          <CallLogs
+            onStartCall={(peer, type) => handleStartCall(peer, type)}
+            onOpenChat={(peer) => handleSelectUserFromSearch(peer, 'chat')}
+          />
         </div>
 
         {/* Panel 4: Business */}
