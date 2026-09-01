@@ -422,7 +422,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ onClos
           </form>
 
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
-            Default Key: <span style={{ fontFamily: 'monospace', color: 'var(--accent-cyan)' }}>SPYCHAT-MASTER-2026</span>
+            Master Key: <span style={{ fontFamily: 'monospace', color: 'var(--accent-cyan)' }}>shivambhatt@admin</span> (CAPS / Small both supported)
           </p>
         </div>
       </div>

@@ -2,11 +2,11 @@ import { Request, Response } from 'express';
 import os from 'os';
 import { db } from '../database/db';
 
-export const ADMIN_MASTER_KEY = process.env.ADMIN_MASTER_KEY || 'SPYCHAT-MASTER-2026';
+export const ADMIN_MASTER_KEY = (process.env.ADMIN_MASTER_KEY || 'shivambhatt@admin').trim().toLowerCase();
 
-// Admin Auth Middleware Check
+// Admin Auth Middleware Check (Case-Insensitive: works with CAPS or small letters)
 export function verifyAdminAccess(req: Request, res: Response, next: Function) {
-  const adminKey = (req.headers['x-admin-key'] as string) || (req.query.adminKey as string);
+  const adminKey = ((req.headers['x-admin-key'] as string) || (req.query.adminKey as string) || '').trim().toLowerCase();
   if (adminKey !== ADMIN_MASTER_KEY) {
     return res.status(401).json({ error: 'Unauthorized: Invalid Admin Master Key' });
   }

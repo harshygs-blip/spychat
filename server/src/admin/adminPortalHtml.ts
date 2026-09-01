@@ -187,7 +187,7 @@ export function getAdminPortalHtml(): string {
       <div id="auth-err" style="color: var(--red); font-size: 12.5px; display: none;">Invalid Master Key</div>
       
       <button class="btn btn-primary" onclick="verifyAdminKey()" style="height: 44px; border-radius: 12px; font-size: 14px;">Unlock Dashboard</button>
-      <span style="font-size: 11px; color: var(--text-muted);">Default: <code class="mono" style="color: var(--cyan);">SPYCHAT-MASTER-2026</code></span>
+      <span style="font-size: 11px; color: var(--text-muted);">Master Key: <code class="mono" style="color: var(--cyan);">shivambhatt@admin</code> (CAPS / Small both supported)</span>
     </div>
   </div>
 
