@@ -32,7 +32,8 @@ import {
   Languages,
   Sparkles,
   Shield,
-  Reply
+  Reply,
+  Music
 } from 'lucide-react';
 import { Conversation, Message, User, AutoReplyRule, CatalogItem } from '../../types';
 import { socketService } from '../../services/socket';
@@ -126,7 +127,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [burnerActiveTimers, setBurnerActiveTimers] = useState<Record<string, number>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [fileFilter, setFileFilter] = useState<'image/*' | 'video/*' | '*/*'>('*/*');
+  const [fileFilter, setFileFilter] = useState<'image/*' | 'video/*' | 'audio/*' | '*/*'>('*/*');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<any>(null);
@@ -1002,8 +1003,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
-  // --- FILE / PHOTO / VIDEO ATTACHMENTS ---
-  const triggerFileSelect = (acceptType: 'image/*' | 'video/*' | '*/*') => {
+  // --- FILE / PHOTO / VIDEO / AUDIO ATTACHMENTS ---
+  const triggerFileSelect = (acceptType: 'image/*' | 'video/*' | 'audio/*' | '*/*') => {
     setFileFilter(acceptType);
     setShowAttachMenu(false);
     setTimeout(() => {
@@ -2322,28 +2323,43 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
       )}
 
-      {/* ATTACHMENT POPUP MENU */}
+      {/* ATTACHMENT POPUP MENU (SMOOTH HORIZONTAL SLIDER) */}
       {showAttachMenu && (
         <div className="glass" style={{
           position: 'absolute',
-          bottom: '70px',
-          left: '16px',
-          borderRadius: '16px',
-          padding: '12px',
+          bottom: '72px',
+          left: '10px',
+          right: '10px',
+          maxWidth: 'calc(100% - 20px)',
+          borderRadius: '22px',
+          padding: '12px 14px',
           display: 'flex',
-          gap: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-          border: '1px solid rgba(6, 182, 212, 0.3)',
-          zIndex: 40
+          alignItems: 'center',
+          gap: '10px',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          scrollSnapType: 'x mandatory',
+          boxShadow: '0 15px 40px rgba(0,0,0,0.9), 0 0 25px rgba(6, 182, 212, 0.25)',
+          border: '1.5px solid rgba(6, 182, 212, 0.4)',
+          zIndex: 40,
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
         }}>
-          {/* Photo */}
+          {/* 1. Photo */}
           <button
-            onClick={() => triggerFileSelect('image/*')}
+            onClick={() => {
+              setShowAttachMenu(false);
+              triggerFileSelect('image/*');
+            }}
             style={{
               background: 'rgba(6, 182, 212, 0.15)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '10px 12px',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+              borderRadius: '16px',
+              padding: '10px 14px',
+              minWidth: '72px',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -2353,17 +2369,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             }}
           >
             <Image size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '600' }}>Photo</span>
+            <span style={{ fontSize: '11px', fontWeight: '700' }}>Photo</span>
           </button>
 
-          {/* Video */}
+          {/* 2. Video */}
           <button
-            onClick={() => triggerFileSelect('video/*')}
+            onClick={() => {
+              setShowAttachMenu(false);
+              triggerFileSelect('video/*');
+            }}
             style={{
               background: 'rgba(139, 92, 246, 0.15)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '10px 12px',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '16px',
+              padding: '10px 14px',
+              minWidth: '72px',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -2373,20 +2395,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             }}
           >
             <Video size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '600' }}>Video</span>
+            <span style={{ fontSize: '11px', fontWeight: '700' }}>Video</span>
           </button>
 
-          {/* View Once Photo (1x) */}
+          {/* 3. View Once Photo (1x) */}
           <button
             onClick={() => {
+              setShowAttachMenu(false);
               setIsViewOnceSend(true);
               triggerFileSelect('image/*');
             }}
             style={{
               background: 'rgba(239, 68, 68, 0.15)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '10px 12px',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '16px',
+              padding: '10px 14px',
+              minWidth: '78px',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -2396,40 +2422,75 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             }}
           >
             <Eye size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '700' }}>1x View Once</span>
+            <span style={{ fontSize: '11px', fontWeight: '800' }}>1x View</span>
           </button>
 
-          {/* Product Catalog */}
+          {/* 4. Document / File */}
           <button
             onClick={() => {
               setShowAttachMenu(false);
-              setShowCatalogSheet(true);
+              triggerFileSelect('*/*');
             }}
             style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '10px 12px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '16px',
+              padding: '10px 14px',
+              minWidth: '72px',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '6px',
-              color: '#10b981',
+              color: '#ffffff',
               cursor: 'pointer'
             }}
           >
-            <ShoppingBag size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '600' }}>Catalog</span>
+            <FileText size={22} />
+            <span style={{ fontSize: '11px', fontWeight: '700' }}>File</span>
           </button>
 
-          {/* Live GPS Location 📍 */}
+          {/* 5. Audio / Music 🎵 */}
           <button
-            onClick={handleSendLocation}
+            onClick={() => {
+              setShowAttachMenu(false);
+              triggerFileSelect('audio/*');
+            }}
+            style={{
+              background: 'rgba(236, 72, 153, 0.15)',
+              border: '1px solid rgba(236, 72, 153, 0.3)',
+              borderRadius: '16px',
+              padding: '10px 14px',
+              minWidth: '72px',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#ec4899',
+              cursor: 'pointer'
+            }}
+          >
+            <Music size={22} />
+            <span style={{ fontSize: '11px', fontWeight: '700' }}>Audio</span>
+          </button>
+
+          {/* 6. Live GPS Location 📍 */}
+          <button
+            onClick={() => {
+              setShowAttachMenu(false);
+              handleSendLocation();
+            }}
             style={{
               background: 'rgba(250, 204, 21, 0.15)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '10px 12px',
+              border: '1px solid rgba(250, 204, 21, 0.3)',
+              borderRadius: '16px',
+              padding: '10px 14px',
+              minWidth: '72px',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -2439,27 +2500,59 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             }}
           >
             <MapPin size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '600' }}>Location</span>
+            <span style={{ fontSize: '11px', fontWeight: '700' }}>Location</span>
           </button>
 
-          {/* Document */}
+          {/* 7. Product Catalog 🛍️ */}
           <button
-            onClick={() => triggerFileSelect('*/*')}
+            onClick={() => {
+              setShowAttachMenu(false);
+              setShowCatalogSheet(true);
+            }}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '10px 12px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '16px',
+              padding: '10px 14px',
+              minWidth: '72px',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '6px',
-              color: 'var(--text-primary)',
+              color: '#10b981',
               cursor: 'pointer'
             }}
           >
-            <FileText size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '600' }}>File</span>
+            <ShoppingBag size={22} />
+            <span style={{ fontSize: '11px', fontWeight: '700' }}>Catalog</span>
+          </button>
+
+          {/* 8. Schedule Send ⏰ */}
+          <button
+            onClick={() => {
+              setShowAttachMenu(false);
+              setShowScheduleModal(true);
+            }}
+            style={{
+              background: 'rgba(59, 130, 246, 0.15)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '16px',
+              padding: '10px 14px',
+              minWidth: '76px',
+              flexShrink: 0,
+              scrollSnapAlign: 'start',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#3b82f6',
+              cursor: 'pointer'
+            }}
+          >
+            <Clock size={22} />
+            <span style={{ fontSize: '11px', fontWeight: '700' }}>Schedule</span>
           </button>
         </div>
       )}
