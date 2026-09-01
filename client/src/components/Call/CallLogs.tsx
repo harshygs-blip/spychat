@@ -10,8 +10,9 @@ import {
   User as UserIcon, 
   X, 
   ShieldCheck, 
-  Clock, 
-  Calendar 
+  Trash2,
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 import { CallLog, User } from '../../types';
 import { AuthService } from '../../services/auth';
@@ -25,27 +26,65 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
   const [calls, setCalls] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfilePeer, setSelectedProfilePeer] = useState<{ peer: User; lastCall: CallLog } | null>(null);
+  const [showClearAllModal, setShowClearAllModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const fetchCalls = async () => {
+    try {
+      const token = AuthService.getAccessToken();
+      const res = await fetch(`${AuthService.getApiBase()}/calls`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.calls) {
+        setCalls(data.calls);
+      }
+    } catch (err) {
+      console.error('Error fetching call logs:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchCalls = async () => {
-      try {
-        const token = AuthService.getAccessToken();
-        const res = await fetch(`${AuthService.getApiBase()}/calls`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.calls) {
-          setCalls(data.calls);
-        }
-      } catch (err) {
-        console.error('Error fetching call logs:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCalls();
   }, []);
+
+  // Delete single call record
+  const handleDeleteSingleCall = async (callId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      const token = AuthService.getAccessToken();
+      setCalls(prev => prev.filter(c => c.id !== callId));
+      if (selectedProfilePeer?.lastCall.id === callId) {
+        setSelectedProfilePeer(null);
+      }
+
+      await fetch(`${AuthService.getApiBase()}/calls/${callId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Error deleting call log:', err);
+    }
+  };
+
+  // Clear all call records
+  const handleConfirmClearAll = async () => {
+    try {
+      const token = AuthService.getAccessToken();
+      setCalls([]);
+      setShowClearAllModal(false);
+      setSelectedProfilePeer(null);
+
+      await fetch(`${AuthService.getApiBase()}/calls`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Error clearing all call logs:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -81,7 +120,7 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
         }}>
           <Phone size={30} color="var(--accent-emerald)" />
         </div>
-        <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#ffffff' }}>No Recent Calls</h3>
+        <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#ffffff' }}>No Call History</h3>
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '280px', lineHeight: '1.5' }}>
           All your audio and video calls are encrypted end-to-end with zero recordings on servers.
         </p>
@@ -98,6 +137,51 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
       padding: '12px 14px 130px 14px',
       touchAction: 'pan-y'
     }}>
+      {/* Top Header: Total Calls Badge & Clear All Button */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '4px 4px 12px 4px',
+        borderBottom: '1px solid var(--border-color)',
+        marginBottom: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#ffffff' }}>Recent Calls</span>
+          <span style={{
+            fontSize: '11px',
+            fontWeight: '800',
+            background: 'rgba(6, 182, 212, 0.18)',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            color: 'var(--accent-cyan)',
+            padding: '1px 7px',
+            borderRadius: '10px'
+          }}>
+            {calls.length}
+          </span>
+        </div>
+
+        {/* Clear All Call History Button */}
+        <button
+          onClick={() => setShowClearAllModal(true)}
+          style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '10px',
+            padding: '5px 10px',
+            color: '#f87171',
+            fontSize: '12px',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            cursor: 'pointer'
+          }}
+        >
+          <Trash2 size={13} /> Clear All
+        </button>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {calls.map((call) => {
           const peer = call.peer;
@@ -169,43 +253,21 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
                 </div>
               </div>
 
-              {peer && (
-                <div
-                  style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Direct Chat / Message Button */}
-                  {onOpenChat && (
-                    <button
-                      onClick={() => onOpenChat(peer as User)}
-                      title="Send Message / Open Chat"
-                      style={{
-                        background: 'rgba(59, 130, 246, 0.15)',
-                        border: '1px solid rgba(59, 130, 246, 0.35)',
-                        color: '#60a5fa',
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <MessageSquare size={17} />
-                    </button>
-                  )}
-
-                  {/* Call Back Button */}
+              <div
+                style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Direct Chat / Message Button */}
+                {peer && onOpenChat && (
                   <button
-                    onClick={() => onStartCall(peer as User, call.type)}
-                    title={`Call Back (${call.type})`}
+                    onClick={() => onOpenChat(peer as User)}
+                    title="Send Message / Open Chat"
                     style={{
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      border: '1px solid rgba(16, 185, 129, 0.35)',
-                      color: 'var(--accent-emerald)',
-                      width: '38px',
-                      height: '38px',
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      border: '1px solid rgba(59, 130, 246, 0.35)',
+                      color: '#60a5fa',
+                      width: '36px',
+                      height: '36px',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
@@ -213,14 +275,139 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
                       cursor: 'pointer'
                     }}
                   >
-                    {call.type === 'video' ? <Video size={17} /> : <Phone size={17} />}
+                    <MessageSquare size={16} />
                   </button>
-                </div>
-              )}
+                )}
+
+                {/* Call Back Button */}
+                {peer && (
+                  <button
+                    onClick={() => onStartCall(peer as User, call.type)}
+                    title={`Call Back (${call.type})`}
+                    style={{
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      color: 'var(--accent-emerald)',
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {call.type === 'video' ? <Video size={16} /> : <Phone size={16} />}
+                  </button>
+                )}
+
+                {/* Delete Single Call Record Button 🗑️ */}
+                <button
+                  onClick={(e) => handleDeleteSingleCall(call.id, e)}
+                  title="Delete call log"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    color: '#f87171',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
+
+      {/* CLEAR ALL CALL LOGS CONFIRMATION MODAL */}
+      {showClearAllModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          zIndex: 95
+        }}>
+          <div className="glass" style={{
+            width: '100%',
+            maxWidth: '320px',
+            borderRadius: '22px',
+            padding: '22px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '14px',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 25px rgba(239, 68, 68, 0.2)',
+            border: '1.5px solid rgba(239, 68, 68, 0.35)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#f87171'
+            }}>
+              <AlertTriangle size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#ffffff' }}>Clear All Call History?</h3>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              This will permanently delete all incoming, outgoing, and missed call logs from your account.
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '6px' }}>
+              <button
+                onClick={() => setShowClearAllModal(false)}
+                style={{
+                  flex: 1,
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--border-color)',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmClearAll}
+                style={{
+                  flex: 1,
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: '#ef4444',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)'
+                }}
+              >
+                Delete All 🗑️
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CALLER PROFILE & QUICK ACTIONS MODAL */}
       {selectedProfilePeer && (
@@ -245,8 +432,7 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
             alignItems: 'center',
             gap: '16px',
             boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 30px rgba(6, 182, 212, 0.25)',
-            border: '1.5px solid rgba(6, 182, 212, 0.3)',
-            animation: 'scaleUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+            border: '1.5px solid rgba(6, 182, 212, 0.3)'
           }}>
             {/* Header */}
             <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -313,7 +499,7 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
               </div>
             </div>
 
-            {/* Actions: Send Message, Voice Call, Video Call */}
+            {/* Actions: Send Message, Voice Call, Video Call, Delete Record */}
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {/* PRIMARY MESSAGE / CHAT BUTTON 💬 */}
               {onOpenChat && (
@@ -381,6 +567,29 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
                   <Video size={16} /> Video Call
                 </button>
               </div>
+
+              {/* Delete this single call record button inside profile */}
+              <button
+                onClick={() => handleDeleteSingleCall(selectedProfilePeer.lastCall.id)}
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#f87171',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  marginTop: '4px'
+                }}
+              >
+                <Trash2 size={15} /> Delete Call Record
+              </button>
             </div>
           </div>
         </div>

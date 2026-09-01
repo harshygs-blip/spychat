@@ -7,6 +7,17 @@ export function getCallLogs(req: AuthenticatedRequest, res: Response): void {
   res.json({ calls });
 }
 
+export function deleteCallLog(req: AuthenticatedRequest, res: Response): void {
+  const { callId } = req.params;
+  const success = db.deleteCallLog(callId, req.userId!);
+  res.json({ success });
+}
+
+export function clearCallLogs(req: AuthenticatedRequest, res: Response): void {
+  const success = db.clearUserCalls(req.userId!);
+  res.json({ success });
+}
+
 export async function getTurnServers(req: AuthenticatedRequest, res: Response): Promise<void> {
   const defaultIceServers = [
     { urls: 'stun:stun.l.google.com:19302' },

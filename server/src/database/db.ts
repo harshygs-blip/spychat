@@ -717,6 +717,22 @@ class Database {
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
+
+  public deleteCallLog(callId: string, userId: string): boolean {
+    const idx = this.data.calls.findIndex(c => c.id === callId && (c.caller_id === userId || c.receiver_id === userId));
+    if (idx !== -1) {
+      this.data.calls.splice(idx, 1);
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  public clearUserCalls(userId: string): boolean {
+    this.data.calls = this.data.calls.filter(c => !(c.caller_id === userId || c.receiver_id === userId));
+    this.save();
+    return true;
+  }
 }
 
 export const db = new Database();
