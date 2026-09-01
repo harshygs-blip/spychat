@@ -181,7 +181,7 @@ export const BusinessAutomationModal: React.FC<BusinessAutomationProps> = ({
       overflowY: 'auto',
       WebkitOverflowScrolling: 'touch',
       padding: '16px 14px 130px 14px',
-      touchAction: 'pan-y'
+      touchAction: 'pan-y pan-x'
     }}>
       {/* Hidden File Picker */}
       <input

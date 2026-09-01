@@ -744,7 +744,8 @@ export const App: React.FC = () => {
           msOverflowStyle: 'none',
           position: 'relative',
           width: '100%',
-          height: '100%'
+          height: '100%',
+          touchAction: 'pan-x pan-y'
         }}
       >
         {/* Panel 1: Chats */}
@@ -851,7 +852,7 @@ export const App: React.FC = () => {
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             overscrollBehaviorY: 'contain',
-            touchAction: 'pan-y'
+            touchAction: 'pan-y pan-x'
           }}
         >
           <UnifiedSettingsModal

@@ -135,7 +135,7 @@ export const CallLogs: React.FC<CallLogsProps> = ({ onStartCall, onOpenChat }) =
       overflowY: 'auto',
       WebkitOverflowScrolling: 'touch',
       padding: '12px 14px 130px 14px',
-      touchAction: 'pan-y'
+      touchAction: 'pan-y pan-x'
     }}>
       {/* Top Header: Total Calls Badge & Clear All Button */}
       <div style={{

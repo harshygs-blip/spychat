@@ -316,7 +316,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
           display: 'flex',
           flexDirection: 'column',
           gap: '14px',
-          touchAction: 'pan-y',
+          touchAction: 'pan-y pan-x',
           overscrollBehaviorY: 'contain'
         }}
       >
