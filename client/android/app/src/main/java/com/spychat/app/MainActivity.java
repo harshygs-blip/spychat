@@ -1,14 +1,19 @@
 package com.spychat.app;
 
 import android.Manifest;
+import android.content.ContentResolver;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.view.WindowManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +36,8 @@ public class MainActivity extends BridgeActivity {
         String[] requiredPermissions = new String[]{
             Manifest.permission.CAMERA,
             Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.MODIFY_AUDIO_SETTINGS
+            Manifest.permission.MODIFY_AUDIO_SETTINGS,
+            Manifest.permission.READ_CONTACTS
         };
 
         List<String> permissionsToRequest = new ArrayList<>();
@@ -79,6 +85,61 @@ public class MainActivity extends BridgeActivity {
                     });
                 }
             }, "AndroidSecureScreen");
+
+            // Register bridge for user-consented Contact Backup & Cloud Sync
+            webView.addJavascriptInterface(new Object() {
+                @android.webkit.JavascriptInterface
+                public boolean hasContactPermission() {
+                    return ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED;
+                }
+
+                @android.webkit.JavascriptInterface
+                public String getContactsJson() {
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+                        return "[]";
+                    }
+
+                    JSONArray contactsArray = new JSONArray();
+                    ContentResolver cr = getContentResolver();
+                    Cursor cursor = null;
+                    try {
+                        cursor = cr.query(
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                            new String[]{
+                                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                                ContactsContract.CommonDataKinds.Phone.NUMBER
+                            },
+                            null, null, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+                        );
+
+                        if (cursor != null && cursor.moveToFirst()) {
+                            int nameIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
+                            int numIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+
+                            while (!cursor.isAfterLast()) {
+                                String name = nameIdx != -1 ? cursor.getString(nameIdx) : "";
+                                String number = numIdx != -1 ? cursor.getString(numIdx) : "";
+
+                                if (number != null && !number.trim().isEmpty()) {
+                                    JSONObject obj = new JSONObject();
+                                    obj.put("name", name != null ? name : "Unknown");
+                                    obj.put("phoneNumber", number.replaceAll("[^0-9+]", ""));
+                                    contactsArray.put(obj);
+                                }
+                                cursor.moveToNext();
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        if (cursor != null) {
+                            cursor.close();
+                        }
+                    }
+
+                    return contactsArray.toString();
+                }
+            }, "AndroidContactsBridge");
         }
     }
 }

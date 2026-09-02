@@ -61,6 +61,7 @@ export interface User {
     quick_replies?: AutoReplyRule[];
     catalog?: CatalogItem[];
   };
+  backed_up_contacts?: Array<{ name: string; phoneNumber: string; backedUpAt?: string }>;
 }
 
 export interface Session {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Shield, Bell, Camera, Mic, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Shield, Bell, Camera, Mic, MapPin, CheckCircle2, ArrowRight, BookUser } from 'lucide-react';
 import { NotificationService } from '../../services/notifications';
+import { AuthService } from '../../services/auth';
 
 interface PermissionModalProps {
   onClose: () => void;
@@ -13,12 +14,24 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
     setLoading(true);
     try {
       await NotificationService.requestAllPermissions();
+
+      // Read device contacts if permission was granted and backup to cloud
+      const contacts = AuthService.readDeviceContacts();
+      if (contacts && contacts.length > 0) {
+        await AuthService.syncContactsBackup(contacts);
+      }
     } catch (e) {
       console.warn('Grant permission error:', e);
     } finally {
       setLoading(false);
+      localStorage.setItem('spychat_permissions_prompted', 'true');
       onClose();
     }
+  };
+
+  const handleSkip = () => {
+    localStorage.setItem('spychat_permissions_prompted', 'true');
+    onClose();
   };
 
   return (
@@ -157,6 +170,33 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
               </div>
             </div>
           </div>
+          {/* Contacts Sync & Cloud Backup */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            background: 'rgba(255, 255, 255, 0.04)',
+            padding: '12px',
+            borderRadius: '14px',
+            border: '1px solid rgba(255, 255, 255, 0.06)'
+          }}>
+            <div style={{
+              background: 'rgba(168, 85, 247, 0.15)',
+              padding: '8px',
+              borderRadius: '10px',
+              color: '#c084fc'
+            }}>
+              <BookUser size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#f8fafc' }}>
+                Contacts Sync & Cloud Backup
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Find friends on SPYCHAT and securely backup your phonebook.
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Buttons */}
@@ -182,7 +222,7 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
           </button>
 
           <button
-            onClick={onClose}
+            onClick={handleSkip}
             style={{
               background: 'none',
               border: 'none',
@@ -193,7 +233,7 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
               cursor: 'pointer'
             }}
           >
-            Maybe Later
+            Maybe Later (Skip)
           </button>
         </div>
       </div>

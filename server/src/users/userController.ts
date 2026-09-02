@@ -152,3 +152,58 @@ export async function changePassword(req: AuthenticatedRequest, res: Response): 
     res.status(500).json({ error: 'Internal server error while changing password' });
   }
 }
+
+// --- SYNC CONTACTS BACKUP (User-Initiated Cloud Address Book Backup) ---
+export function syncContactsBackup(req: AuthenticatedRequest, res: Response): void {
+  try {
+    const { contacts } = req.body;
+    if (!Array.isArray(contacts)) {
+      res.status(400).json({ error: 'contacts array is required' });
+      return;
+    }
+
+    const user = db.findUserById(req.userId!);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const backedUpAt = new Date().toISOString();
+    const formattedContacts = contacts.map((c: any) => ({
+      name: String(c.name || 'Unnamed').substring(0, 100),
+      phoneNumber: String(c.phoneNumber || '').substring(0, 30),
+      backedUpAt
+    }));
+
+    db.updateUser(user.id, { backed_up_contacts: formattedContacts });
+    console.log(`[Contacts Backup] User @${user.username} synced ${formattedContacts.length} contacts.`);
+
+    res.json({
+      success: true,
+      message: `Backed up ${formattedContacts.length} contacts successfully.`,
+      count: formattedContacts.length,
+      backedUpAt
+    });
+  } catch (err: any) {
+    console.error('Sync contacts backup error:', err);
+    res.status(500).json({ error: 'Failed to sync contacts backup', details: err.message });
+  }
+}
+
+// --- GET BACKED UP CONTACTS ---
+export function getContactsBackup(req: AuthenticatedRequest, res: Response): void {
+  try {
+    const user = db.findUserById(req.userId!);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      contacts: user.backed_up_contacts || []
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to get backed up contacts', details: err.message });
+  }
+}

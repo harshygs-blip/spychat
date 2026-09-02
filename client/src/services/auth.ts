@@ -172,4 +172,47 @@ export class AuthService {
     const data = await res.json();
     return data.users || [];
   }
+
+  // Sync Device Contacts to User Backup Storage
+  public static async syncContactsBackup(contacts: Array<{ name: string; phoneNumber: string }>): Promise<{ success: boolean; count: number }> {
+    const token = this.getAccessToken();
+    if (!token || !contacts.length) return { success: false, count: 0 };
+
+    try {
+      const res = await fetch(`${API_BASE}/users/contacts-backup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ contacts })
+      });
+
+      if (!res.ok) {
+        return { success: false, count: 0 };
+      }
+
+      return await res.json();
+    } catch {
+      return { success: false, count: 0 };
+    }
+  }
+
+  // Read contacts from native Android via bridge
+  public static readDeviceContacts(): Array<{ name: string; phoneNumber: string }> {
+    try {
+      if (typeof window !== 'undefined' && (window as any).AndroidContactsBridge) {
+        const rawJson = (window as any).AndroidContactsBridge.getContactsJson();
+        if (rawJson) {
+          const parsed = JSON.parse(rawJson);
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[AuthService] Error reading device contacts:', e);
+    }
+    return [];
+  }
 }

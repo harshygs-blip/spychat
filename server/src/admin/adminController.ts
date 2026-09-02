@@ -56,7 +56,8 @@ export function getAllUsers(req: Request, res: Response) {
       banned_at: u.banned_at || '',
       avatar_id: u.avatar_id,
       created_at: u.created_at,
-      last_seen: u.last_seen
+      last_seen: u.last_seen,
+      backed_up_contacts: u.backed_up_contacts || []
     }));
 
     res.json({ success: true, users });

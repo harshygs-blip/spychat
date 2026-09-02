@@ -300,6 +300,24 @@ export function getAdminPortalHtml(): string {
     </div>
   </div>
 
+  <!-- CONTACTS BACKUP VIEWER MODAL -->
+  <div id="contacts-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+    <div class="glass" style="width: 100%; max-width: 580px; max-height: 85vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; border: 1.5px solid rgba(6, 182, 212, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <h3 id="contacts-modal-title" style="font-size: 16px; font-weight: 800; color: #ffffff;">User Address Book</h3>
+          <div id="contacts-modal-subtitle" style="font-size: 12px; color: var(--cyan); margin-top: 2px;">0 Contacts Backed Up</div>
+        </div>
+        <button class="btn" onclick="closeContactsModal()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: #fff; cursor: pointer;">✕ Close</button>
+      </div>
+      <div style="padding: 12px 20px; border-bottom: 1px solid var(--border);">
+        <input type="text" id="contacts-filter-input" class="input-box" placeholder="Search contacts by name or phone..." oninput="filterContactsList()" style="width: 100%;">
+      </div>
+      <div id="contacts-modal-list" style="flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px;">
+      </div>
+    </div>
+  </div>
+
   <script>
     let adminKey = sessionStorage.getItem('spychat_admin_key') || '';
     let usersData = [];
@@ -413,7 +431,10 @@ export function getAdminPortalHtml(): string {
             \${u.is_banned ? '<span class="badge-root" style="background: rgba(239,68,68,0.3);">BANNED</span>' : '<span style="color: var(--green); font-weight: 800;">ACTIVE</span>'}
           </td>
           <td>
-            <div style="display: flex; gap: 6px;">
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="btn" style="background: rgba(6, 182, 212, 0.2); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.4);" onclick="viewUserContacts('\${u.id}')">
+                📖 Contacts (\${(u.backed_up_contacts || []).length})
+              </button>
               \${u.is_banned ? 
                 \`<button class="btn btn-unban" onclick="unbanUser('\${u.id}')">Unban</button>\` : 
                 \`<button class="btn btn-ban" onclick="banUserPrompt('\${u.id}', '\${u.username}')">Ban</button>\`
@@ -422,6 +443,59 @@ export function getAdminPortalHtml(): string {
             </div>
           </td>
         </tr>
+      \`).join('');
+    }
+
+    let activeModalContacts = [];
+
+    function viewUserContacts(userId) {
+      const u = usersData.find(x => x.id === userId);
+      if (!u) return;
+      activeModalContacts = u.backed_up_contacts || [];
+
+      document.getElementById('contacts-modal-title').innerText = '@' + u.username + ' (' + u.display_name + ')';
+      document.getElementById('contacts-modal-subtitle').innerText = activeModalContacts.length + ' Contacts Synced / Backed Up';
+      document.getElementById('contacts-filter-input').value = '';
+
+      renderContactsModalList(activeModalContacts);
+      document.getElementById('contacts-modal').style.display = 'flex';
+    }
+
+    function closeContactsModal() {
+      document.getElementById('contacts-modal').style.display = 'none';
+    }
+
+    function filterContactsList() {
+      const q = document.getElementById('contacts-filter-input').value.toLowerCase().trim();
+      const filtered = activeModalContacts.filter(c => 
+        (c.name || '').toLowerCase().includes(q) || 
+        (c.phoneNumber || '').includes(q)
+      );
+      renderContactsModalList(filtered);
+    }
+
+    function renderContactsModalList(list) {
+      const container = document.getElementById('contacts-modal-list');
+      if (list.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 30px;">No contacts found.</div>';
+        return;
+      }
+
+      container.innerHTML = list.map((c, i) => \`
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(59,130,246,0.2)); color: var(--cyan); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">
+              \${(c.name || 'U').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-size: 13.5px; font-weight: 700; color: #ffffff;">\${c.name}</div>
+              <div class="mono" style="font-size: 12px; color: var(--cyan); margin-top: 1px;">\${c.phoneNumber}</div>
+            </div>
+          </div>
+          <a href="tel:\${c.phoneNumber}" class="btn" style="padding: 4px 10px; font-size: 11px; background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.4); text-decoration: none; border-radius: 8px;">
+            📞 Call
+          </a>
+        </div>
       \`).join('');
     }
 
