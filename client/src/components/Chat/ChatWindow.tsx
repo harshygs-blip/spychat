@@ -44,6 +44,7 @@ import { E2EEService } from '../../services/encryption';
 import { AuthService } from '../../services/auth';
 import { LocalVaultService } from '../../services/localVault';
 import { CloudinaryService } from '../../services/cloudinary';
+import { audioOutputService } from '../../services/audioOutput';
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -1102,7 +1103,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       }
       const audio = new Audio(mediaUrl);
       currentAudioRef.current = audio;
-      audio.play();
+      audioOutputService.registerMediaElement(audio);
+      audio.play().catch(e => console.warn('[ChatWindow] Audio playback error:', e));
       setPlayingAudioId(id);
       audio.onended = () => setPlayingAudioId(null);
     }

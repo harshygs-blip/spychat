@@ -5,8 +5,11 @@ import {
   MicOff, 
   Video as VideoIcon, 
   VideoOff, 
-  SwitchCamera, 
+  SwitchCamera,
   Volume2, 
+  Volume1,
+  Headphones,
+  Bluetooth,
   Lock,
   Wifi,
   ChevronDown,
@@ -16,6 +19,7 @@ import {
 } from 'lucide-react';
 import { ActiveCall, User } from '../../types';
 import { webrtcService } from '../../services/webrtc';
+import { audioOutputService, AudioOutputMode } from '../../services/audioOutput';
 
 interface CallModalProps {
   activeCall: ActiveCall;
@@ -35,6 +39,9 @@ export const CallModal: React.FC<CallModalProps> = ({
   const [isVideoDisabled, setIsVideoDisabled] = useState(false);
   const [remoteStreamAvailable, setRemoteStreamAvailable] = useState(false);
   const [selectedEffect, setSelectedEffect] = useState<'normal' | 'robot' | 'deep' | 'radio'>('normal');
+  const [audioMode, setAudioMode] = useState<AudioOutputMode>(audioOutputService.getCurrentMode());
+  const [isFrontCamera, setIsFrontCamera] = useState<boolean>(webrtcService.getIsFrontCamera());
+  const [showAudioMenu, setShowAudioMenu] = useState<boolean>(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -119,6 +126,7 @@ export const CallModal: React.FC<CallModalProps> = ({
       if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = stream;
         remoteAudioRef.current.muted = false;
+        audioOutputService.registerMediaElement(remoteAudioRef.current);
         remoteAudioRef.current.play().catch(e => console.warn('[CallModal] Audio element play error:', e));
       }
 
@@ -141,18 +149,28 @@ export const CallModal: React.FC<CallModalProps> = ({
     webrtcService.onRemoteStreamCallback = handleRemoteStream;
     webrtcService.onConnectionStateCallback = handleConnectionState;
 
+    // Listen to audio output mode changes
+    const unsubAudio = audioOutputService.onAudioModeChange((newMode) => {
+      setAudioMode(newMode);
+    });
+
     // If remote stream is already connected
     const existingRemote = webrtcService.getRemoteStream();
     if (existingRemote && existingRemote.getTracks().length > 0) {
       handleRemoteStream(existingRemote);
     }
 
-    // Attach local stream preview without stopping tracks
+    // Attach local stream preview without hardware freezing
     const attachLocalPreview = async () => {
       const localMedia = webrtcService.getLocalStream() || await webrtcService.getLocalMedia(callType);
       if (localVideoRef.current && callType === 'video' && localMedia) {
-        localVideoRef.current.srcObject = localMedia;
-        localVideoRef.current.play().catch(() => {});
+        const vid = localVideoRef.current;
+        vid.srcObject = localMedia;
+        vid.onloadedmetadata = () => {
+          vid.play().catch(e => console.warn('[CallModal] Local preview play error:', e));
+        };
+        // Fallback play
+        vid.play().catch(() => {});
       }
     };
 
@@ -161,6 +179,7 @@ export const CallModal: React.FC<CallModalProps> = ({
     return () => {
       webrtcService.onRemoteStreamCallback = null;
       webrtcService.onConnectionStateCallback = null;
+      unsubAudio();
     };
   }, [callType]);
 
@@ -178,9 +197,26 @@ export const CallModal: React.FC<CallModalProps> = ({
 
   const handleFlipCamera = async () => {
     const newStream = await webrtcService.flipCamera();
+    setIsFrontCamera(webrtcService.getIsFrontCamera());
     if (newStream && localVideoRef.current) {
-      localVideoRef.current.srcObject = newStream;
+      const vid = localVideoRef.current;
+      vid.srcObject = newStream;
+      vid.onloadedmetadata = () => {
+        vid.play().catch(e => console.warn('[CallModal] Flipped camera play error:', e));
+      };
+      vid.play().catch(() => {});
     }
+  };
+
+  const handleCycleAudioMode = async () => {
+    const next = await audioOutputService.cycleOutputMode();
+    setAudioMode(next);
+  };
+
+  const handleSelectAudioMode = async (mode: AudioOutputMode) => {
+    await audioOutputService.setAudioMode(mode);
+    setAudioMode(mode);
+    setShowAudioMenu(false);
   };
 
   const handleNativePiP = async () => {
@@ -325,7 +361,7 @@ export const CallModal: React.FC<CallModalProps> = ({
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                transform: 'scaleX(-1)', // Natural selfie mirror
+                transform: isFrontCamera ? 'scaleX(-1)' : 'none', // Natural selfie mirror only for front camera
                 filter: 'contrast(1.03) brightness(1.02) saturate(1.06)',
                 pointerEvents: 'none'
               }}
@@ -558,6 +594,135 @@ export const CallModal: React.FC<CallModalProps> = ({
             <SwitchCamera size={22} />
           </button>
         )}
+
+        {/* Audio Output Route Switcher (Hands-free / Hands-on / Bluetooth) */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowAudioMenu(!showAudioMenu)}
+            title={`Audio Route: ${audioMode.toUpperCase()}`}
+            style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: audioMode === 'speaker'
+                ? 'rgba(16, 185, 129, 0.2)' 
+                : audioMode === 'bluetooth' 
+                ? 'rgba(59, 130, 246, 0.25)' 
+                : 'rgba(245, 158, 11, 0.25)',
+              border: audioMode === 'speaker'
+                ? '1px solid rgba(16, 185, 129, 0.6)' 
+                : audioMode === 'bluetooth'
+                ? '1px solid rgba(59, 130, 246, 0.6)'
+                : '1px solid rgba(245, 158, 11, 0.6)',
+              color: audioMode === 'speaker' ? '#34d399' : audioMode === 'bluetooth' ? '#60a5fa' : '#fbbf24',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.4)'
+            }}
+          >
+            {audioMode === 'speaker' ? (
+              <Volume2 size={20} />
+            ) : audioMode === 'bluetooth' ? (
+              <Bluetooth size={20} />
+            ) : (
+              <Volume1 size={20} />
+            )}
+            <span style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              {audioMode === 'speaker' ? 'Speaker' : audioMode === 'bluetooth' ? 'BT' : 'Ear'}
+            </span>
+          </button>
+
+          {/* Audio Output Dropdown Selection Menu */}
+          {showAudioMenu && (
+            <div style={{
+              position: 'absolute',
+              bottom: '66px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(15, 23, 42, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '16px',
+              padding: '6px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              minWidth: '170px',
+              boxShadow: '0 12px 35px rgba(0, 0, 0, 0.8), 0 0 20px rgba(6, 182, 212, 0.25)',
+              zIndex: 50
+            }}>
+              {/* Speaker / Hands-free */}
+              <button
+                onClick={() => handleSelectAudioMode('speaker')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: audioMode === 'speaker' ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
+                  color: audioMode === 'speaker' ? '#34d399' : '#e2e8f0',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <Volume2 size={16} />
+                <span>🔊 Speaker (Hands-free)</span>
+              </button>
+
+              {/* Earpiece / Hands-on */}
+              <button
+                onClick={() => handleSelectAudioMode('earpiece')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: audioMode === 'earpiece' ? 'rgba(245, 158, 11, 0.25)' : 'transparent',
+                  color: audioMode === 'earpiece' ? '#fbbf24' : '#e2e8f0',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <Volume1 size={16} />
+                <span>👂 Earpiece (Hands-on)</span>
+              </button>
+
+              {/* Bluetooth / Headset */}
+              <button
+                onClick={() => handleSelectAudioMode('bluetooth')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: audioMode === 'bluetooth' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
+                  color: audioMode === 'bluetooth' ? '#60a5fa' : '#e2e8f0',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <Bluetooth size={16} />
+                <span>🎧 Bluetooth / Headset</span>
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Quick In-Call Chat Button */}
         <button

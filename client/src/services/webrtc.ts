@@ -91,6 +91,10 @@ export class WebRTCService {
     return this.remoteStream;
   }
 
+  public getIsFrontCamera(): boolean {
+    return this.isFrontCamera;
+  }
+
   // Initialize Local Media (Camera/Mic) - Reuses active stream if already running
   public async getLocalMedia(callType: 'audio' | 'video', forceNew = false): Promise<MediaStream> {
     this.isAudioOnly = callType === 'audio';
@@ -116,30 +120,33 @@ export class WebRTCService {
       },
       video: this.isAudioOnly ? false : {
         facingMode: this.isFrontCamera ? 'user' : 'environment',
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 },
+        frameRate: { ideal: 30, min: 20 }
       }
     };
 
-    // Resilient Hardware Media Capture with 4-Tier Fallback
+    // Resilient Hardware Media Capture with Multi-Tier Fallback
     try {
-      // 1. Try High-Quality Audio & Video
+      // 1. Try Optimized Audio & Video Capture
       this.rawAudioStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.localStream = this.rawAudioStream;
       return this.localStream;
     } catch (err: any) {
-      console.warn('[WebRTC] HD constraints failed, trying basic audio/video:', err.message);
+      console.warn('[WebRTC] Preferred constraints failed, trying basic audio/video:', err.message);
       
       try {
-        // 2. Try Basic Audio & Video without complex constraints
+        // 2. Try Standard Facing Mode Without Resolution Restraints
         this.rawAudioStream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-          video: this.isAudioOnly ? false : true
+          video: this.isAudioOnly ? false : {
+            facingMode: this.isFrontCamera ? 'user' : 'environment'
+          }
         });
         this.localStream = this.rawAudioStream;
         return this.localStream;
       } catch (err2: any) {
-        console.warn('[WebRTC] Audio/Video pair failed, checking individual sources:', err2.message);
+        console.warn('[WebRTC] FacingMode pair failed, falling back to basic video:', err2.message);
 
         // 3. If Audio Source failed (e.g. mic busy/locked), try Video only + Silent Audio track
         if (!this.isAudioOnly) {

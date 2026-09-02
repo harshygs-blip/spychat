@@ -7,10 +7,14 @@ import {
   MessageSquare, 
   Lock,
   PictureInPicture,
-  Minimize2
+  Minimize2,
+  Volume2,
+  Volume1,
+  Bluetooth
 } from 'lucide-react';
 import { ActiveCall, User } from '../../types';
 import { webrtcService } from '../../services/webrtc';
+import { audioOutputService, AudioOutputMode } from '../../services/audioOutput';
 
 interface FloatingCallPiPProps {
   activeCall: ActiveCall;
@@ -28,6 +32,7 @@ export const FloatingCallPiP: React.FC<FloatingCallPiPProps> = ({
   const { peerUser, callType, state } = activeCall;
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [audioMode, setAudioMode] = useState<AudioOutputMode>(audioOutputService.getCurrentMode());
   const [sizeMode, setSizeMode] = useState<'normal' | 'large'>('normal');
   const [position, setPosition] = useState<{ x: number; y: number }>({
     x: window.innerWidth - 145,
@@ -68,6 +73,7 @@ export const FloatingCallPiP: React.FC<FloatingCallPiPProps> = ({
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = remote;
           remoteAudioRef.current.muted = false;
+          audioOutputService.registerMediaElement(remoteAudioRef.current);
           remoteAudioRef.current.play().catch(() => {});
         }
       }
@@ -81,11 +87,16 @@ export const FloatingCallPiP: React.FC<FloatingCallPiPProps> = ({
 
     attachStreams();
 
+    const unsubAudio = audioOutputService.onAudioModeChange((newMode) => {
+      setAudioMode(newMode);
+    });
+
     webrtcService.onRemoteStreamCallback = () => {
       attachStreams();
     };
 
     return () => {
+      unsubAudio();
       // keep stream alive
     };
   }, [callType]);
@@ -401,6 +412,41 @@ export const FloatingCallPiP: React.FC<FloatingCallPiPProps> = ({
           title="Open Chat"
         >
           <MessageSquare size={13} />
+        </button>
+
+        {/* Quick Audio Route Switcher (Hands-free / Hands-on / Bluetooth) */}
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            const next = await audioOutputService.cycleOutputMode();
+            setAudioMode(next);
+          }}
+          style={{
+            background: audioMode === 'speaker'
+              ? 'rgba(16, 185, 129, 0.85)'
+              : audioMode === 'bluetooth'
+              ? 'rgba(59, 130, 246, 0.85)'
+              : 'rgba(245, 158, 11, 0.85)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)'
+          }}
+          title={`Audio Route: ${audioMode.toUpperCase()}`}
+        >
+          {audioMode === 'speaker' ? (
+            <Volume2 size={13} />
+          ) : audioMode === 'bluetooth' ? (
+            <Bluetooth size={13} />
+          ) : (
+            <Volume1 size={13} />
+          )}
         </button>
 
         {/* Quick Mute Toggle */}
