@@ -181,7 +181,7 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
               </div>
             </div>
           </div>
-          {/* Contacts Sync & Cloud Backup */}
+          {/* Magic Sync */}
           <div style={{
             display: 'flex',
             alignItems: 'flex-start',
@@ -201,10 +201,10 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
             </div>
             <div>
               <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#f8fafc' }}>
-                Contacts Sync & Cloud Backup
+                See the Magic Sync
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Find friends on SPYCHAT and securely backup your phonebook.
+                Click me to see your friends
               </div>
             </div>
           </div>

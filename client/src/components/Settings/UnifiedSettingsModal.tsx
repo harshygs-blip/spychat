@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  User, 
-  Palette, 
-  ShieldCheck, 
-  KeyRound, 
-  LogOut, 
-  Bot, 
-  Bell, 
-  Info, 
-  ChevronRight, 
-  ArrowLeft, 
-  Check, 
-  Lock, 
-  Sparkles, 
-  Volume2, 
+import {
+  User,
+  Palette,
+  ShieldCheck,
+  KeyRound,
+  LogOut,
+  Bot,
+  Bell,
+  Info,
+  ChevronRight,
+  ArrowLeft,
+  Check,
+  Lock,
+  Sparkles,
+  Volume2,
   Smartphone,
   ShieldAlert,
   Sliders,
@@ -195,7 +195,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
         osc2.stop();
         ctx.close();
       }, 1500);
-    } catch {}
+    } catch { }
   };
 
   const handleSaveProfile = async () => {
@@ -1667,9 +1667,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
               <BookOpen size={22} />
             </div>
             <div>
-              <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#ffffff' }}>Phone Contacts Cloud Backup</h4>
+              <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#ffffff' }}>See the Magic Sync</h4>
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Sync device contacts to your cloud account
+                Click me to see your friends
               </p>
             </div>
           </div>
@@ -1700,7 +1700,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
               border: 'none'
             }}
           >
-            🔄 Sync & Backup Contacts Now
+            🔄 touch me to see the magic
           </button>
         </div>
       </div>
