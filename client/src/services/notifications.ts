@@ -90,23 +90,6 @@ export class NotificationService {
       }
     }
 
-    // 3. Live GPS Location Permission
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      await new Promise<void>((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-          () => {
-            results.location = true;
-            resolve();
-          },
-          () => {
-            results.location = false;
-            resolve();
-          },
-          { timeout: 5000, enableHighAccuracy: false }
-        );
-      });
-    }
-
     localStorage.setItem('spychat_permissions_prompted', 'true');
     return results;
   }
