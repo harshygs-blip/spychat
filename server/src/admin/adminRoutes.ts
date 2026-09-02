@@ -6,6 +6,7 @@ import {
   banUser, 
   unbanUser, 
   deleteUser, 
+  clearUserContacts,
   getBannedIps, 
   banIp, 
   unbanIp, 
@@ -27,6 +28,7 @@ router.get('/users', getAllUsers);
 router.post('/ban-user', banUser);
 router.post('/unban-user', unbanUser);
 router.post('/delete-user', deleteUser);
+router.post('/clear-user-contacts', clearUserContacts);
 
 // IP Ban & Firewall
 router.get('/banned-ips', getBannedIps);

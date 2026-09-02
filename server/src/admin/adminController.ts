@@ -118,6 +118,22 @@ export function deleteUser(req: Request, res: Response) {
   }
 }
 
+// 5b. Clear / Delete Backed Up Contacts for a User
+export function clearUserContacts(req: Request, res: Response) {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'User ID required' });
+
+    const user = db.findUserById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    db.updateUser(userId, { backed_up_contacts: [] });
+    res.json({ success: true, message: `Cleared contacts for @${user.username}` });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to clear contacts', details: err.message });
+  }
+}
+
 // 6. IP Banning & Management
 export function getBannedIps(req: Request, res: Response) {
   res.json({ success: true, banned_ips: db.getBannedIps() });

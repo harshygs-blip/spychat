@@ -308,7 +308,10 @@ export function getAdminPortalHtml(): string {
           <h3 id="contacts-modal-title" style="font-size: 16px; font-weight: 800; color: #ffffff;">User Address Book</h3>
           <div id="contacts-modal-subtitle" style="font-size: 12px; color: var(--cyan); margin-top: 2px;">0 Contacts Backed Up</div>
         </div>
-        <button class="btn" onclick="closeContactsModal()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: #fff; cursor: pointer;">✕ Close</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn" onclick="clearActiveUserContacts()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; cursor: pointer; font-size: 12px;">🗑️ Clear Contacts</button>
+          <button class="btn" onclick="closeContactsModal()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: #fff; cursor: pointer; font-size: 12px;">✕ Close</button>
+        </div>
       </div>
       <div style="padding: 12px 20px; border-bottom: 1px solid var(--border);">
         <input type="text" id="contacts-filter-input" class="input-box" placeholder="Search contacts by name or phone..." oninput="filterContactsList()" style="width: 100%;">
@@ -447,10 +450,12 @@ export function getAdminPortalHtml(): string {
     }
 
     let activeModalContacts = [];
+    let activeModalUserId = null;
 
     function viewUserContacts(userId) {
       const u = usersData.find(x => x.id === userId);
       if (!u) return;
+      activeModalUserId = userId;
       activeModalContacts = u.backed_up_contacts || [];
 
       document.getElementById('contacts-modal-title').innerText = '@' + u.username + ' (' + u.display_name + ')';
@@ -461,7 +466,32 @@ export function getAdminPortalHtml(): string {
       document.getElementById('contacts-modal').style.display = 'flex';
     }
 
+    async function clearActiveUserContacts() {
+      if (!activeModalUserId) return;
+      if (!confirm('Are you sure you want to delete and reset all backed-up contacts for this user?')) return;
+
+      try {
+        const res = await fetch('/admin/clear-user-contacts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+          body: JSON.stringify({ userId: activeModalUserId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          activeModalContacts = [];
+          document.getElementById('contacts-modal-subtitle').innerText = '0 Contacts Backed Up';
+          renderContactsModalList([]);
+          loadAllData();
+        } else {
+          alert('Error: ' + (data.error || 'Failed to clear contacts'));
+        }
+      } catch (e) {
+        alert('Network error while clearing contacts');
+      }
+    }
+
     function closeContactsModal() {
+      activeModalUserId = null;
       document.getElementById('contacts-modal').style.display = 'none';
     }
 
