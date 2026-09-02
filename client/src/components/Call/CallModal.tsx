@@ -45,6 +45,11 @@ export const CallModal: React.FC<CallModalProps> = ({
   const [isFrontCamera, setIsFrontCamera] = useState<boolean>(webrtcService.getIsFrontCamera());
   const [isScreenSharing, setIsScreenSharing] = useState<boolean>(webrtcService.getIsScreenSharing());
   const [showAudioMenu, setShowAudioMenu] = useState<boolean>(false);
+  const [canScreenShare] = useState<boolean>(
+    typeof navigator !== 'undefined' && 
+    !!navigator.mediaDevices && 
+    typeof navigator.mediaDevices.getDisplayMedia === 'function'
+  );
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -703,8 +708,8 @@ export const CallModal: React.FC<CallModalProps> = ({
             </button>
           )}
 
-          {/* SCREEN SHARE (IF VIDEO CALL) */}
-          {callType === 'video' && (
+          {/* SCREEN SHARE (IF VIDEO CALL AND SUPPORTED BY DEVICE) */}
+          {callType === 'video' && canScreenShare && (
             <button
               onClick={handleToggleScreenShare}
               style={{
