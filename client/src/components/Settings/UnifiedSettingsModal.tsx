@@ -368,7 +368,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          touchAction: 'pan-y pan-x'
         }}
       >
         {/* HERO VIP PROFILE BANNER */}
