@@ -133,10 +133,10 @@ export const CallModal: React.FC<CallModalProps> = ({
         remoteAudioRef.current.play().catch(e => console.warn('[CallModal] Audio element play error:', e));
       }
 
-      // Feed to remoteVideoRef if video call
+      // Feed to remoteVideoRef if video call (keep muted so only dedicated remoteAudioRef plays audio to avoid double loop)
       if (remoteVideoRef.current && callType === 'video') {
         remoteVideoRef.current.srcObject = stream;
-        remoteVideoRef.current.muted = false;
+        remoteVideoRef.current.muted = true;
         remoteVideoRef.current.play().catch(e => console.warn('[CallModal] Video element play error:', e));
       }
     };
@@ -278,92 +278,116 @@ export const CallModal: React.FC<CallModalProps> = ({
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: '#040711',
+      background: '#070b14',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
       zIndex: 90,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      userSelect: 'none'
     }}>
       {/* Hidden audio element for WebRTC audio track */}
       <audio ref={remoteAudioRef} autoPlay playsInline />
 
-      {/* TOP FLOATING ACTION BAR: MINIMIZE (PIP) & NATIVE PIP */}
+      {/* TOP HEADER BAR */}
       <div style={{
-        position: 'absolute',
-        top: '16px',
-        left: '16px',
-        right: '16px',
+        position: 'relative',
+        zIndex: 40,
+        paddingTop: 'max(20px, env(safe-area-inset-top, 16px))',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+        paddingBottom: '12px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        zIndex: 35
+        background: 'linear-gradient(to bottom, rgba(5, 9, 18, 0.95) 0%, rgba(5, 9, 18, 0.6) 70%, transparent 100%)'
       }}>
         {/* Minimize into Floating PiP Button */}
         <button
           onClick={onMinimize}
           style={{
-            background: 'rgba(255, 255, 255, 0.15)',
+            background: 'rgba(255, 255, 255, 0.12)',
             backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.25)',
-            borderRadius: '16px',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '14px',
             width: '42px',
             height: '42px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#ffffff',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)'
+            cursor: 'pointer'
           }}
-          title="Minimize & Chat (PiP)"
+          title="Minimize & Chat"
         >
           <ChevronDown size={24} />
         </button>
 
-        {/* Pop-out to OS Native Floating Video (PiP) */}
-        {callType === 'video' && document.pictureInPictureEnabled && (
-          <button
-            onClick={handleNativePiP}
-            style={{
-              background: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              borderRadius: '16px',
-              width: '42px',
-              height: '42px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)'
-            }}
-            title="Pop-out Floating Window (OS PiP)"
-          >
-            <PictureInPicture size={20} />
-          </button>
-        )}
+        {/* Center: Status & Encryption Badge */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '3px 10px',
+            borderRadius: '12px',
+            background: 'rgba(6, 182, 212, 0.15)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            color: '#38bdf8',
+            fontSize: '11px',
+            fontWeight: '700'
+          }}>
+            <Lock size={11} /> End-to-End Encrypted
+          </div>
+          <span style={{
+            fontSize: '12px',
+            fontWeight: 700,
+            color: state === 'CONNECTED' ? '#34d399' : '#38bdf8'
+          }}>
+            {state === 'CONNECTED' ? (duration > 0 ? formatDuration(duration) : 'Connected') : (state === 'CALLING' ? 'Calling...' : 'Ringing...')}
+          </span>
+        </div>
+
+        {/* In-Call Quick Chat Button */}
+        <button
+          onClick={() => onOpenChat?.(peerUser)}
+          style={{
+            background: 'rgba(255, 255, 255, 0.12)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '14px',
+            width: '42px',
+            height: '42px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            cursor: 'pointer'
+          }}
+          title="Open Chat"
+        >
+          <MessageSquare size={20} />
+        </button>
       </div>
 
-      {/* VIDEO CONTAINER (If video call) */}
+      {/* MIDDLE CONTENT: VIDEO OR AUDIO CALL SCREEN */}
       {callType === 'video' ? (
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-          {/* Remote Video Stream (Main Ultra-HD Video) */}
+          {/* Main Remote Video */}
           <video
             ref={remoteVideoRef}
             autoPlay
             playsInline
+            muted
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              filter: 'contrast(1.03) brightness(1.02) saturate(1.06)',
               background: '#040812'
             }}
           />
 
-          {/* Local Video Stream (Draggable Picture in Picture) */}
+          {/* Draggable Local Preview Picture-in-Picture */}
           <div
             onTouchStart={handlePipTouchStart}
             onTouchMove={handlePipTouchMove}
@@ -373,18 +397,16 @@ export const CallModal: React.FC<CallModalProps> = ({
               position: 'fixed',
               left: `${localPipPos.x}px`,
               top: `${localPipPos.y}px`,
-              width: '115px',
-              height: '165px',
-              borderRadius: '20px',
+              width: '110px',
+              height: '155px',
+              borderRadius: '16px',
               overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(6, 182, 212, 0.45)',
-              border: '2px solid var(--accent-cyan)',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(6, 182, 212, 0.3)',
+              border: '2px solid rgba(6, 182, 212, 0.8)',
               zIndex: 35,
               background: '#0f172a',
               cursor: 'grab',
-              touchAction: 'none',
-              userSelect: 'none',
-              transition: isDraggingLocalPip.current ? 'none' : 'box-shadow 0.2s ease'
+              touchAction: 'none'
             }}
           >
             <video
@@ -396,141 +418,92 @@ export const CallModal: React.FC<CallModalProps> = ({
                 width: '100%',
                 height: '100%',
                 objectFit: isScreenSharing ? 'contain' : 'cover',
-                transform: (!isScreenSharing && isFrontCamera) ? 'scaleX(-1)' : 'none', // Do NOT mirror screenshare
-                filter: isScreenSharing ? 'none' : 'contrast(1.03) brightness(1.02) saturate(1.06)',
+                transform: (!isScreenSharing && isFrontCamera) ? 'scaleX(-1)' : 'none',
                 pointerEvents: 'none'
               }}
             />
           </div>
         </div>
       ) : (
-        /* AUDIO CALL BACKGROUND WITH VISUALIZER */
+        /* AUDIO CALL CENTER VIEW */
         <div style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          position: 'relative'
+          gap: '18px',
+          padding: '20px'
         }}>
-          {state === 'CONNECTED' && <div className="ripple-circle" />}
+          {/* Pulsing Avatar */}
           <div style={{
-            width: '130px',
-            height: '130px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+            position: 'relative',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 50px rgba(6, 182, 212, 0.4)',
-            zIndex: 2
+            justifyContent: 'center'
           }}>
-            <span style={{ fontSize: '48px', fontWeight: '800', color: '#ffffff' }}>
-              {peerUser.display_name.substring(0, 2).toUpperCase()}
-            </span>
+            {state === 'CONNECTED' && (
+              <div style={{
+                position: 'absolute',
+                width: '180px',
+                height: '180px',
+                borderRadius: '50%',
+                background: 'rgba(6, 182, 212, 0.15)',
+                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+              }} />
+            )}
+            <div style={{
+              width: '120px',
+              height: '120px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 12px 35px rgba(6, 182, 212, 0.4)',
+              zIndex: 2
+            }}>
+              <span style={{ fontSize: '42px', fontWeight: '800', color: '#ffffff' }}>
+                {peerUser.display_name.substring(0, 2).toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#ffffff', margin: 0 }}>
+              {peerUser.display_name}
+            </h2>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              @{peerUser.username}
+            </div>
           </div>
         </div>
       )}
 
-      {/* TOP OVERLAY HEADER */}
+      {/* BOTTOM CONTROLS PANEL */}
       <div style={{
         position: 'relative',
-        zIndex: 20,
-        paddingTop: 'max(24px, calc(env(safe-area-inset-top, 0px) + 16px))',
-        paddingBottom: '20px',
-        paddingLeft: 'max(20px, env(safe-area-inset-left, 0px))',
-        paddingRight: 'max(20px, env(safe-area-inset-right, 0px))',
-        background: 'linear-gradient(to bottom, rgba(4, 7, 17, 0.85) 0%, transparent 100%)',
+        zIndex: 40,
+        paddingTop: '16px',
+        paddingBottom: 'max(28px, env(safe-area-inset-bottom, 24px))',
+        paddingLeft: '20px',
+        paddingRight: '20px',
+        background: 'linear-gradient(to top, rgba(5, 9, 18, 0.98) 0%, rgba(5, 9, 18, 0.85) 60%, transparent 100%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '6px'
+        gap: '16px'
       }}>
+        {/* Voice Changer Pills (Clean & Compact) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '20px',
-            background: 'rgba(6, 182, 212, 0.15)',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
-            color: 'var(--accent-cyan)',
-            fontSize: '11px',
-            fontWeight: '700'
-          }}>
-            <Lock size={12} /> E2EE WebRTC
-          </div>
-
-          {callType === 'video' && (
-            <div style={{
-              padding: '4px 10px',
-              borderRadius: '20px',
-              background: 'rgba(16, 185, 129, 0.2)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              color: '#34d399',
-              fontSize: '11px',
-              fontWeight: '800'
-            }}>
-              ✨ 1080P 60FPS
-            </div>
-          )}
-        </div>
-
-        <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>
-          {peerUser.display_name}
-        </h2>
-
-        <div style={{
-          fontSize: '14px',
-          color: state === 'CONNECTED' ? 'var(--accent-emerald)' : 'var(--accent-cyan)',
-          fontWeight: '600',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}>
-          {state === 'CONNECTED' ? (
-            <>
-              <Wifi size={14} />
-              <span>{formatDuration(duration)}</span>
-              <span style={{
-                fontSize: '11px',
-                padding: '2px 8px',
-                borderRadius: '10px',
-                background: connectionStatus.includes('Connected') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(6, 182, 212, 0.2)',
-                color: connectionStatus.includes('Connected') ? '#34d399' : 'var(--accent-cyan)',
-                fontWeight: '700',
-                border: '1px solid currentColor'
-              }}>
-                {connectionStatus}
-              </span>
-            </>
-          ) : (
-            <span className="animate-pulse-glow" style={{ padding: '2px 8px', borderRadius: '8px' }}>
-              {state === 'CALLING' ? 'Calling...' : state === 'RINGING' ? 'Ringing...' : 'Connecting...'}
-            </span>
-          )}
-        </div>
-
-        {/* VOICE CHANGER / SCRAMBLER BAR */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 12px',
+          gap: '6px',
+          background: 'rgba(255, 255, 255, 0.06)',
+          padding: '4px 8px',
           borderRadius: '20px',
-          background: 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid var(--border-color)',
-          marginTop: '6px'
+          border: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--accent-primary)' }}>
-            🎙️ Voice:
-          </span>
           {(['normal', 'robot', 'deep', 'radio'] as const).map((eff) => (
             <button
               key={eff}
@@ -540,286 +513,245 @@ export const CallModal: React.FC<CallModalProps> = ({
               }}
               style={{
                 padding: '4px 10px',
-                borderRadius: '12px',
-                background: selectedEffect === eff ? 'var(--accent-gradient)' : 'rgba(255, 255, 255, 0.06)',
-                color: selectedEffect === eff ? '#000' : 'var(--text-primary)',
+                borderRadius: '14px',
+                background: selectedEffect === eff ? '#06b6d4' : 'transparent',
+                color: selectedEffect === eff ? '#000000' : '#cbd5e1',
                 border: 'none',
-                fontSize: '11px',
-                fontWeight: selectedEffect === eff ? '800' : '500',
-                cursor: 'pointer'
+                fontSize: '11.5px',
+                fontWeight: selectedEffect === eff ? '800' : '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
             >
               {eff === 'normal' ? 'Natural' : eff === 'robot' ? '🤖 Robot' : eff === 'deep' ? '🕵️ Deep' : '📻 Radio'}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* BOTTOM IN-CALL CONTROLS BAR */}
-      <div style={{
-        position: 'relative',
-        zIndex: 20,
-        padding: '16px 20px 36px 20px',
-        background: 'linear-gradient(to top, rgba(4, 7, 17, 0.95) 0%, rgba(4, 7, 17, 0.6) 70%, transparent 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '20px'
-      }}>
-        {/* Mute Mic */}
-        <button
-          onClick={handleToggleMute}
-          title={isMuted ? 'Unmute' : 'Mute'}
-          style={{
-            width: '54px',
-            height: '54px',
-            borderRadius: '50%',
-            background: isMuted ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255, 255, 255, 0.12)',
-            border: isMuted ? '1px solid var(--accent-danger)' : '1px solid var(--border-color)',
-            color: isMuted ? '#f87171' : '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
-          }}
-        >
-          {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
-        </button>
-
-        {/* Video Toggle (If video call) */}
-        {callType === 'video' && (
+        {/* Main Action Buttons Grid */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '18px',
+          width: '100%',
+          maxWidth: '380px'
+        }}>
+          {/* MUTE / UNMUTE BUTTON */}
           <button
-            onClick={handleToggleVideo}
-            title={isVideoDisabled ? 'Turn Camera On' : 'Turn Camera Off'}
+            onClick={handleToggleMute}
             style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '50%',
-              background: isVideoDisabled ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255, 255, 255, 0.12)',
-              border: isVideoDisabled ? '1px solid var(--accent-danger)' : '1px solid var(--border-color)',
-              color: isVideoDisabled ? '#f87171' : '#ffffff',
+              flex: 1,
+              height: '56px',
+              borderRadius: '16px',
+              background: isMuted ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+              border: isMuted ? '1.5px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: isMuted ? '#f87171' : '#ffffff',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '4px',
               cursor: 'pointer'
             }}
           >
-            {isVideoDisabled ? <VideoOff size={22} /> : <VideoIcon size={22} />}
+            {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
+            <span style={{ fontSize: '10.5px', fontWeight: 700 }}>
+              {isMuted ? 'Unmute' : 'Mute'}
+            </span>
           </button>
-        )}
 
-        {/* Flip Camera (If video call) */}
-        {callType === 'video' && (
+          {/* SPEAKER / EARPIECE BUTTON */}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <button
+              onClick={() => setShowAudioMenu(!showAudioMenu)}
+              style={{
+                width: '100%',
+                height: '56px',
+                borderRadius: '16px',
+                background: audioMode === 'speaker'
+                  ? 'rgba(16, 185, 129, 0.2)'
+                  : audioMode === 'bluetooth'
+                  ? 'rgba(59, 130, 246, 0.25)'
+                  : 'rgba(245, 158, 11, 0.25)',
+                border: audioMode === 'speaker'
+                  ? '1.5px solid #10b981'
+                  : audioMode === 'bluetooth'
+                  ? '1.5px solid #3b82f6'
+                  : '1.5px solid #f59e0b',
+                color: audioMode === 'speaker' ? '#34d399' : audioMode === 'bluetooth' ? '#60a5fa' : '#fbbf24',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              {audioMode === 'speaker' ? <Volume2 size={22} /> : audioMode === 'bluetooth' ? <Bluetooth size={22} /> : <Volume1 size={22} />}
+              <span style={{ fontSize: '10.5px', fontWeight: 700 }}>
+                {audioMode === 'speaker' ? 'Speaker' : audioMode === 'bluetooth' ? 'Bluetooth' : 'Earpiece'}
+              </span>
+            </button>
+
+            {/* Audio Dropdown Menu */}
+            {showAudioMenu && (
+              <div style={{
+                position: 'absolute',
+                bottom: '68px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(15, 23, 42, 0.96)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '16px',
+                padding: '6px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: '180px',
+                boxShadow: '0 12px 35px rgba(0, 0, 0, 0.9)',
+                zIndex: 50
+              }}>
+                <button
+                  onClick={() => handleSelectAudioMode('speaker')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: audioMode === 'speaker' ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
+                    color: audioMode === 'speaker' ? '#34d399' : '#e2e8f0',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <Volume2 size={16} />
+                  <span>🔊 Loudspeaker</span>
+                </button>
+
+                <button
+                  onClick={() => handleSelectAudioMode('earpiece')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: audioMode === 'earpiece' ? 'rgba(245, 158, 11, 0.25)' : 'transparent',
+                    color: audioMode === 'earpiece' ? '#fbbf24' : '#e2e8f0',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <Volume1 size={16} />
+                  <span>👂 Earpiece</span>
+                </button>
+
+                <button
+                  onClick={() => handleSelectAudioMode('bluetooth')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: audioMode === 'bluetooth' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
+                    color: audioMode === 'bluetooth' ? '#60a5fa' : '#e2e8f0',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <Bluetooth size={16} />
+                  <span>🎧 Bluetooth</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* FLIP CAMERA (IF VIDEO CALL) */}
+          {callType === 'video' && (
+            <button
+              onClick={handleFlipCamera}
+              style={{
+                flex: 1,
+                height: '56px',
+                borderRadius: '16px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              <SwitchCamera size={22} />
+              <span style={{ fontSize: '10.5px', fontWeight: 700 }}>Flip</span>
+            </button>
+          )}
+
+          {/* SCREEN SHARE (IF VIDEO CALL) */}
+          {callType === 'video' && (
+            <button
+              onClick={handleToggleScreenShare}
+              style={{
+                flex: 1,
+                height: '56px',
+                borderRadius: '16px',
+                background: isScreenSharing ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+                border: isScreenSharing ? '1.5px solid #06b6d4' : '1px solid rgba(255, 255, 255, 0.15)',
+                color: isScreenSharing ? '#38bdf8' : '#ffffff',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              {isScreenSharing ? <MonitorOff size={22} /> : <Monitor size={22} />}
+              <span style={{ fontSize: '10.5px', fontWeight: 700 }}>
+                {isScreenSharing ? 'Stop' : 'Screen'}
+              </span>
+            </button>
+          )}
+
+          {/* END CALL BUTTON */}
           <button
-            onClick={handleFlipCamera}
-            title="Flip Camera"
+            onClick={onEndCall}
             style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.12)',
-              border: '1px solid var(--border-color)',
+              flex: 1,
+              height: '56px',
+              borderRadius: '16px',
+              background: '#ef4444',
+              border: 'none',
               color: '#ffffff',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-          >
-            <SwitchCamera size={22} />
-          </button>
-        )}
-
-        {/* Screen Share Button (With Android Black Screen Bypass) */}
-        {callType === 'video' && (
-          <button
-            onClick={handleToggleScreenShare}
-            title={isScreenSharing ? 'Stop Screen Sharing' : 'Share Screen (Bypass Black Screen)'}
-            style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '50%',
-              background: isScreenSharing ? 'rgba(6, 182, 212, 0.35)' : 'rgba(255, 255, 255, 0.12)',
-              border: isScreenSharing ? '1.5px solid var(--accent-cyan)' : '1px solid var(--border-color)',
-              color: isScreenSharing ? '#06b6d4' : '#ffffff',
-              display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '2px',
-              cursor: 'pointer',
-              boxShadow: isScreenSharing ? '0 0 20px rgba(6, 182, 212, 0.5)' : 'none'
-            }}
-          >
-            {isScreenSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
-            <span style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-              {isScreenSharing ? 'Stop' : 'Share'}
-            </span>
-          </button>
-        )}
-
-        {/* Audio Output Route Switcher (Hands-free / Hands-on / Bluetooth) */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowAudioMenu(!showAudioMenu)}
-            title={`Audio Route: ${audioMode.toUpperCase()}`}
-            style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '50%',
-              background: audioMode === 'speaker'
-                ? 'rgba(16, 185, 129, 0.2)' 
-                : audioMode === 'bluetooth' 
-                ? 'rgba(59, 130, 246, 0.25)' 
-                : 'rgba(245, 158, 11, 0.25)',
-              border: audioMode === 'speaker'
-                ? '1px solid rgba(16, 185, 129, 0.6)' 
-                : audioMode === 'bluetooth'
-                ? '1px solid rgba(59, 130, 246, 0.6)'
-                : '1px solid rgba(245, 158, 11, 0.6)',
-              color: audioMode === 'speaker' ? '#34d399' : audioMode === 'bluetooth' ? '#60a5fa' : '#fbbf24',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.4)'
-            }}
-          >
-            {audioMode === 'speaker' ? (
-              <Volume2 size={20} />
-            ) : audioMode === 'bluetooth' ? (
-              <Bluetooth size={20} />
-            ) : (
-              <Volume1 size={20} />
-            )}
-            <span style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-              {audioMode === 'speaker' ? 'Speaker' : audioMode === 'bluetooth' ? 'BT' : 'Ear'}
-            </span>
-          </button>
-
-          {/* Audio Output Dropdown Selection Menu */}
-          {showAudioMenu && (
-            <div style={{
-              position: 'absolute',
-              bottom: '66px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(15, 23, 42, 0.95)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '16px',
-              padding: '6px',
-              display: 'flex',
-              flexDirection: 'column',
               gap: '4px',
-              minWidth: '170px',
-              boxShadow: '0 12px 35px rgba(0, 0, 0, 0.8), 0 0 20px rgba(6, 182, 212, 0.25)',
-              zIndex: 50
-            }}>
-              {/* Speaker / Hands-free */}
-              <button
-                onClick={() => handleSelectAudioMode('speaker')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: audioMode === 'speaker' ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
-                  color: audioMode === 'speaker' ? '#34d399' : '#e2e8f0',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                <Volume2 size={16} />
-                <span>🔊 Speaker (Hands-free)</span>
-              </button>
-
-              {/* Earpiece / Hands-on */}
-              <button
-                onClick={() => handleSelectAudioMode('earpiece')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: audioMode === 'earpiece' ? 'rgba(245, 158, 11, 0.25)' : 'transparent',
-                  color: audioMode === 'earpiece' ? '#fbbf24' : '#e2e8f0',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                <Volume1 size={16} />
-                <span>👂 Earpiece (Hands-on)</span>
-              </button>
-
-              {/* Bluetooth / Headset */}
-              <button
-                onClick={() => handleSelectAudioMode('bluetooth')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: audioMode === 'bluetooth' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
-                  color: audioMode === 'bluetooth' ? '#60a5fa' : '#e2e8f0',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                <Bluetooth size={16} />
-                <span>🎧 Bluetooth / Headset</span>
-              </button>
-            </div>
-          )}
+              cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(239, 68, 68, 0.45)'
+            }}
+          >
+            <PhoneOff size={22} />
+            <span style={{ fontSize: '10.5px', fontWeight: 800 }}>End</span>
+          </button>
         </div>
-
-        {/* Quick In-Call Chat Button */}
-        <button
-          onClick={() => onOpenChat?.(peerUser)}
-          title="Chat while on Call"
-          style={{
-            width: '54px',
-            height: '54px',
-            borderRadius: '50%',
-            background: 'rgba(59, 130, 246, 0.3)',
-            border: '1px solid rgba(59, 130, 246, 0.6)',
-            color: '#60a5fa',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
-          }}
-        >
-          <MessageSquare size={22} />
-        </button>
-
-        {/* END CALL BUTTON */}
-        <button
-          onClick={onEndCall}
-          className="btn-danger"
-          title="End Call"
-          style={{
-            width: '64px',
-            height: '64px'
-          }}
-        >
-          <PhoneOff size={28} />
-        </button>
       </div>
     </div>
   );

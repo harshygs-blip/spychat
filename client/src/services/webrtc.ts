@@ -3,44 +3,18 @@ import { AuthService } from './auth';
 
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
-    // Multi-Global STUN Infrastructure
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' },
-    { urls: 'stun:global.stun.twilio.com:3478' },
-    { urls: 'stun:stun.services.mozilla.com' },
-    { urls: 'stun:stun.nextcloud.com:443' },
-    { urls: 'stun:stun.voip.blackberry.com:3478' },
-    { urls: 'stun:stun.stunprotocol.org:3478' },
-    
-    // TURN UDP / TCP Relays for Symmetric Carrier-Grade NAT (Jio / Airtel across states)
     {
       urls: [
         'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:443?transport=tcp',
-        'turns:openrelay.metered.ca:443?transport=tcp',
-        'turns:openrelay.metered.ca:5349',
-        'turns:openrelay.metered.ca:5349?transport=tcp'
-      ],
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: [
-        'turn:relay.metered.ca:80',
-        'turn:relay.metered.ca:443',
-        'turn:relay.metered.ca:443?transport=tcp',
-        'turns:relay.metered.ca:443?transport=tcp'
+        'turn:openrelay.metered.ca:443'
       ],
       username: 'openrelayproject',
       credential: 'openrelayproject'
     }
   ],
-  iceCandidatePoolSize: 10
+  iceCandidatePoolSize: 2
 };
 
 export type VoiceEffectType = 'normal' | 'robot' | 'deep' | 'radio';
@@ -130,9 +104,9 @@ export class WebRTCService {
       },
       video: this.isAudioOnly ? false : {
         facingMode: this.isFrontCamera ? 'user' : 'environment',
-        width: { ideal: 1280, max: 1920 },
-        height: { ideal: 720, max: 1080 },
-        frameRate: { ideal: 30, min: 20 }
+        width: { ideal: 640, max: 854 },
+        height: { ideal: 480, max: 480 },
+        frameRate: { ideal: 24, max: 30 }
       }
     };
 
@@ -518,9 +492,26 @@ export class WebRTCService {
 
   // Toggle Mute Audio
   public toggleMute(muted: boolean): void {
+    const isEnabled = !muted;
+
     if (this.localStream) {
       this.localStream.getAudioTracks().forEach(track => {
-        track.enabled = !muted;
+        track.enabled = isEnabled;
+      });
+    }
+
+    if (this.rawAudioStream) {
+      this.rawAudioStream.getAudioTracks().forEach(track => {
+        track.enabled = isEnabled;
+      });
+    }
+
+    // Directly disable/enable track on peerConnection audio senders
+    if (this.peerConnection) {
+      this.peerConnection.getSenders().forEach(sender => {
+        if (sender.track && sender.track.kind === 'audio') {
+          sender.track.enabled = isEnabled;
+        }
       });
     }
   }
