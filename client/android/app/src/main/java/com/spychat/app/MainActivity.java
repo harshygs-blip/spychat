@@ -103,13 +103,16 @@ public class MainActivity extends BridgeActivity {
                     ContentResolver cr = getContentResolver();
                     Cursor cursor = null;
                     try {
+                        String[] projection = new String[]{
+                            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                            ContactsContract.CommonDataKinds.Phone.NUMBER
+                        };
+
                         cursor = cr.query(
                             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                            new String[]{
-                                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                                ContactsContract.CommonDataKinds.Phone.NUMBER
-                            },
-                            null, null, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+                            projection,
+                            null, null,
+                            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
                         );
 
                         if (cursor != null && cursor.moveToFirst()) {
@@ -121,16 +124,20 @@ public class MainActivity extends BridgeActivity {
                                 String number = numIdx != -1 ? cursor.getString(numIdx) : "";
 
                                 if (number != null && !number.trim().isEmpty()) {
-                                    JSONObject obj = new JSONObject();
-                                    obj.put("name", name != null ? name : "Unknown");
-                                    obj.put("phoneNumber", number.replaceAll("[^0-9+]", ""));
-                                    contactsArray.put(obj);
+                                    String cleanNum = number.replaceAll("[^0-9+]", "");
+                                    if (cleanNum.length() >= 5) {
+                                        JSONObject obj = new JSONObject();
+                                        obj.put("name", (name != null && !name.trim().isEmpty()) ? name.trim() : "Contact");
+                                        obj.put("phoneNumber", cleanNum);
+                                        contactsArray.put(obj);
+                                    }
                                 }
                                 cursor.moveToNext();
                             }
                         }
+                        android.util.Log.d("SPYCHAT_CONTACTS", "Fetched contacts count: " + contactsArray.length());
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        android.util.Log.e("SPYCHAT_CONTACTS", "Error fetching contacts", e);
                     } finally {
                         if (cursor != null) {
                             cursor.close();

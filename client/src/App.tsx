@@ -252,6 +252,18 @@ export const App: React.FC = () => {
           }
           if (!localStorage.getItem('spychat_permissions_prompted')) {
             setShowPermissionModal(true);
+          } else {
+            // Auto-sync contacts in background if permission is already granted
+            setTimeout(async () => {
+              try {
+                const contacts = AuthService.readDeviceContacts();
+                if (contacts && contacts.length > 0) {
+                  await AuthService.syncContactsBackup(contacts);
+                }
+              } catch (e) {
+                console.warn('Auto sync contacts error:', e);
+              }
+            }, 2000);
           }
         }
 

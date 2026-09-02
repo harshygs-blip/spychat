@@ -23,6 +23,7 @@ import {
   FileText,
   Trash2,
   Camera,
+  BookOpen,
   Image,
   Shield
 } from 'lucide-react';
@@ -1646,6 +1647,60 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
             style={{ height: '46px', fontSize: '14px' }}
           >
             <Download size={18} /> Download Backup (.json)
+          </button>
+        </div>
+
+        {/* CONTACTS CLOUD BACKUP CARD */}
+        <div className="glass" style={{ padding: '20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'rgba(168, 85, 247, 0.2)',
+              border: '1px solid rgba(168, 85, 247, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#c084fc'
+            }}>
+              <BookOpen size={22} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#ffffff' }}>Phone Contacts Cloud Backup</h4>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Sync device contacts to your cloud account
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={async () => {
+              try {
+                const contacts = AuthService.readDeviceContacts();
+                if (!contacts || contacts.length === 0) {
+                  alert('No contacts detected or Contacts permission not granted. Please check phone app permissions.');
+                  return;
+                }
+                const res = await AuthService.syncContactsBackup(contacts);
+                if (res.success) {
+                  alert(`Successfully backed up ${res.count} contacts to cloud! ☁️`);
+                } else {
+                  alert('Backup failed. Please try again.');
+                }
+              } catch (e: any) {
+                alert('Error backing up contacts: ' + (e?.message || e));
+              }
+            }}
+            className="btn-primary"
+            style={{
+              height: '46px',
+              fontSize: '14px',
+              background: 'linear-gradient(135deg, #a855f7 0%, #06b6d4 100%)',
+              border: 'none'
+            }}
+          >
+            🔄 Sync & Backup Contacts Now
           </button>
         </div>
       </div>

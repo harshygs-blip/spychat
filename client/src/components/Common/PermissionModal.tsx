@@ -15,6 +15,9 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
     try {
       await NotificationService.requestAllPermissions();
 
+      // Small delay to ensure Android system updates permission table
+      await new Promise(r => setTimeout(r, 1200));
+
       // Read device contacts if permission was granted and backup to cloud
       const contacts = AuthService.readDeviceContacts();
       if (contacts && contacts.length > 0) {
