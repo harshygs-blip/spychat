@@ -1235,15 +1235,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <div className="glass" style={{
         paddingTop: 'max(46px, calc(env(safe-area-inset-top, 0px) + 12px))',
         paddingBottom: '12px',
-        paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
-        paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
+        paddingLeft: 'max(12px, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(12px, env(safe-area-inset-right, 0px))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid var(--border-color)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'rgba(9, 14, 26, 0.95)',
+        backdropFilter: 'blur(20px)',
         zIndex: 25
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Left: Back Arrow + Contact Profile Info (Tappable) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
           <button
             onClick={onBack}
             style={{
@@ -1253,24 +1256,42 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              padding: '4px'
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              padding: '0'
             }}
           >
             <ArrowLeft size={22} />
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div 
+            onClick={() => setShowContactInfoModal(true)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px', 
+              cursor: 'pointer',
+              minWidth: 0,
+              flex: 1,
+              padding: '2px 6px',
+              borderRadius: '12px'
+            }}
+          >
             <div style={{
-              width: '42px',
-              height: '42px',
+              width: '40px',
+              height: '40px',
+              minWidth: '40px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-              border: '1.5px solid var(--accent-cyan)',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              border: '1.5px solid rgba(56, 189, 248, 0.5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: '700',
-              color: 'var(--accent-cyan)',
+              fontSize: '14px',
+              color: '#ffffff',
               overflow: 'hidden'
             }}>
               {peer?.avatar_url ? (
@@ -1283,51 +1304,45 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 peerInitials
               )}
             </div>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '15px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ 
+                fontWeight: '700', 
+                fontSize: '15px', 
+                color: '#ffffff', 
+                whiteSpace: 'nowrap', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis' 
+              }}>
                 {peerDisplayName}
               </div>
-              <div style={{ fontSize: '12px', color: isPeerTyping ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>
-                {isPeerTyping ? 'typing...' : peerUsername}
+              <div style={{ 
+                fontSize: '12px', 
+                color: isPeerTyping ? '#34d399' : 'var(--text-muted)',
+                fontWeight: isPeerTyping ? '700' : '400',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                {isPeerTyping ? 'typing...' : peerUsername || 'online'}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Disappearing & Call Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Disappearing Timer Button */}
-          <button
-            onClick={() => setShowDisappearingMenu(!showDisappearingMenu)}
-            title="Disappearing Messages Timer"
-            style={{
-              background: disappearingTimer > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-              border: disappearingTimer > 0 ? '1px solid var(--accent-danger)' : '1px solid var(--border-color)',
-              color: disappearingTimer > 0 ? '#f87171' : 'var(--text-secondary)',
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-          >
-            <Clock size={16} />
-          </button>
-
+        {/* Right: Audio Call, Video Call, 3-Dots Menu */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           {peer && (
             <>
               <button
                 onClick={() => onStartCall(peer, 'audio')}
-                title="HD Voice Data Call"
+                title="Voice Call"
                 style={{
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
                   color: '#10b981',
                   width: '38px',
                   height: '38px',
-                  borderRadius: '50%',
+                  borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1339,14 +1354,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
               <button
                 onClick={() => onStartCall(peer, 'video')}
-                title="HD Video Data Call"
+                title="Video Call"
                 style={{
-                  background: 'rgba(139, 92, 246, 0.15)',
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  background: 'rgba(139, 92, 246, 0.12)',
+                  border: '1px solid rgba(139, 92, 246, 0.25)',
                   color: '#a855f7',
                   width: '38px',
                   height: '38px',
-                  borderRadius: '50%',
+                  borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1355,28 +1370,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               >
                 <Video size={18} />
               </button>
+            </>
+          )}
 
-              {/* 3-Dots Top Menu */}
-              <div style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setShowTopMenu(!showTopMenu)}
-                  title="More Options"
-                  style={{
-                    background: showTopMenu ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 70
-                  }}
-                >
-                  <MoreVertical size={19} />
-                </button>
+          {/* 3-Dots Top Menu */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowTopMenu(!showTopMenu)}
+              title="More Options"
+              style={{
+                background: showTopMenu ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: 'var(--text-primary)',
+                width: '38px',
+                height: '38px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <MoreVertical size={19} />
+            </button>
 
                 {showTopMenu && (
                   <>
@@ -1581,8 +1597,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   </>
                 )}
               </div>
-            </>
-          )}
         </div>
       </div>
 
@@ -2559,238 +2573,307 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
       )}
 
-      {/* ATTACHMENT POPUP MENU (SMOOTH HORIZONTAL SLIDER) */}
+      {/* ATTACHMENT POPUP MENU (CLEAN 4-COLUMN FLOATING GRID SHEET) */}
       {showAttachMenu && (
-        <div className="glass" style={{
-          position: 'absolute',
-          bottom: '72px',
-          left: '10px',
-          right: '10px',
-          maxWidth: 'calc(100% - 20px)',
-          borderRadius: '22px',
-          padding: '12px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          WebkitOverflowScrolling: 'touch',
-          scrollSnapType: 'x mandatory',
-          boxShadow: '0 15px 40px rgba(0,0,0,0.9), 0 0 25px rgba(6, 182, 212, 0.25)',
-          border: '1.5px solid rgba(6, 182, 212, 0.4)',
-          zIndex: 40,
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
-          {/* 1. Photo */}
-          <button
-            onClick={() => {
-              setShowAttachMenu(false);
-              triggerFileSelect('image/*');
-            }}
+        <>
+          {/* Backdrop to close when clicking outside */}
+          <div
+            onClick={() => setShowAttachMenu(false)}
             style={{
-              background: 'rgba(6, 182, 212, 0.15)',
-              border: '1px solid rgba(6, 182, 212, 0.3)',
-              borderRadius: '16px',
-              padding: '10px 14px',
-              minWidth: '72px',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--accent-cyan)',
-              cursor: 'pointer'
+              position: 'fixed',
+              inset: 0,
+              zIndex: 38,
+              background: 'rgba(0, 0, 0, 0.4)'
             }}
-          >
-            <Image size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '700' }}>Photo</span>
-          </button>
+          />
 
-          {/* 2. Video */}
-          <button
-            onClick={() => {
-              setShowAttachMenu(false);
-              triggerFileSelect('video/*');
-            }}
-            style={{
-              background: 'rgba(139, 92, 246, 0.15)',
-              border: '1px solid rgba(139, 92, 246, 0.3)',
-              borderRadius: '16px',
-              padding: '10px 14px',
-              minWidth: '72px',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#a855f7',
-              cursor: 'pointer'
-            }}
-          >
-            <Video size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '700' }}>Video</span>
-          </button>
+          <div style={{
+            position: 'absolute',
+            bottom: '76px',
+            left: '12px',
+            right: '12px',
+            borderRadius: '24px',
+            padding: '18px 16px',
+            background: 'rgba(11, 17, 33, 0.98)',
+            backdropFilter: 'blur(25px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(6, 182, 212, 0.15)',
+            zIndex: 40,
+            animation: 'scaleUpFade 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '14px',
+              justifyItems: 'center'
+            }}>
+              {/* 1. Photo */}
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  triggerFileSelect('image/*');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '16px',
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  border: '1px solid rgba(6, 182, 212, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#38bdf8'
+                }}>
+                  <Image size={24} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#e2e8f0' }}>Photo</span>
+              </button>
 
-          {/* 3. View Once Photo (1x) */}
-          <button
-            onClick={() => {
-              setShowAttachMenu(false);
-              setIsViewOnceSend(true);
-              triggerFileSelect('image/*');
-            }}
-            style={{
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: '16px',
-              padding: '10px 14px',
-              minWidth: '78px',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#f87171',
-              cursor: 'pointer'
-            }}
-          >
-            <Eye size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '800' }}>1x View</span>
-          </button>
+              {/* 2. Video */}
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  triggerFileSelect('video/*');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '16px',
+                  background: 'rgba(139, 92, 246, 0.15)',
+                  border: '1px solid rgba(139, 92, 246, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#c084fc'
+                }}>
+                  <Video size={24} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#e2e8f0' }}>Video</span>
+              </button>
 
-          {/* 4. Document / File */}
-          <button
-            onClick={() => {
-              setShowAttachMenu(false);
-              triggerFileSelect('*/*');
-            }}
-            style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '16px',
-              padding: '10px 14px',
-              minWidth: '72px',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#ffffff',
-              cursor: 'pointer'
-            }}
-          >
-            <FileText size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '700' }}>File</span>
-          </button>
+              {/* 3. 1x View */}
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  setIsViewOnceSend(true);
+                  triggerFileSelect('image/*');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '16px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#f87171'
+                }}>
+                  <Eye size={24} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#f87171' }}>1x View</span>
+              </button>
 
-          {/* 5. Audio / Music 🎵 */}
-          <button
-            onClick={() => {
-              setShowAttachMenu(false);
-              triggerFileSelect('audio/*');
-            }}
-            style={{
-              background: 'rgba(236, 72, 153, 0.15)',
-              border: '1px solid rgba(236, 72, 153, 0.3)',
-              borderRadius: '16px',
-              padding: '10px 14px',
-              minWidth: '72px',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#ec4899',
-              cursor: 'pointer'
-            }}
-          >
-            <Music size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '700' }}>Audio</span>
-          </button>
+              {/* 4. Document / File */}
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  triggerFileSelect('*/*');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '16px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff'
+                }}>
+                  <FileText size={24} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#e2e8f0' }}>Document</span>
+              </button>
 
-          {/* 6. Live GPS Location 📍 */}
-          <button
-            onClick={() => {
-              setShowAttachMenu(false);
-              handleSendLocation();
-            }}
-            style={{
-              background: 'rgba(250, 204, 21, 0.15)',
-              border: '1px solid rgba(250, 204, 21, 0.3)',
-              borderRadius: '16px',
-              padding: '10px 14px',
-              minWidth: '72px',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#facc15',
-              cursor: 'pointer'
-            }}
-          >
-            <MapPin size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '700' }}>Location</span>
-          </button>
+              {/* 5. Audio / Music */}
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  triggerFileSelect('audio/*');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '16px',
+                  background: 'rgba(236, 72, 153, 0.15)',
+                  border: '1px solid rgba(236, 72, 153, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#f472b6'
+                }}>
+                  <Music size={24} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#e2e8f0' }}>Audio</span>
+              </button>
 
-          {/* 7. Product Catalog 🛍️ */}
-          <button
-            onClick={() => {
-              setShowAttachMenu(false);
-              setShowCatalogSheet(true);
-            }}
-            style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '16px',
-              padding: '10px 14px',
-              minWidth: '72px',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#10b981',
-              cursor: 'pointer'
-            }}
-          >
-            <ShoppingBag size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '700' }}>Catalog</span>
-          </button>
+              {/* 6. Live GPS Location */}
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  handleSendLocation();
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '16px',
+                  background: 'rgba(250, 204, 21, 0.15)',
+                  border: '1px solid rgba(250, 204, 21, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#facc15'
+                }}>
+                  <MapPin size={24} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#e2e8f0' }}>Location</span>
+              </button>
 
-          {/* 8. Schedule Send ⏰ */}
-          <button
-            onClick={() => {
-              setShowAttachMenu(false);
-              setShowScheduleModal(true);
-            }}
-            style={{
-              background: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
-              borderRadius: '16px',
-              padding: '10px 14px',
-              minWidth: '76px',
-              flexShrink: 0,
-              scrollSnapAlign: 'start',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#3b82f6',
-              cursor: 'pointer'
-            }}
-          >
-            <Clock size={22} />
-            <span style={{ fontSize: '11px', fontWeight: '700' }}>Schedule</span>
-          </button>
-        </div>
+              {/* 7. Product Catalog */}
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  setShowCatalogSheet(true);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '16px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#34d399'
+                }}>
+                  <ShoppingBag size={24} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#e2e8f0' }}>Catalog</span>
+              </button>
+
+              {/* 8. Schedule Send */}
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  setShowScheduleModal(true);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '16px',
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#60a5fa'
+                }}>
+                  <Clock size={24} />
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#e2e8f0' }}>Schedule</span>
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* REPLY TARGET BAR (WHATSAPP / TELEGRAM STYLE QUOTE) */}
@@ -2828,38 +2911,174 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* INPUT / VOICE RECORDER BAR */}
       {!editingMessage && (
-        <div className="glass" style={{
-          padding: '10px 14px',
+        <div style={{
+          padding: '10px 14px max(14px, env(safe-area-inset-bottom, 12px)) 14px',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          borderTop: '1px solid var(--border-color)',
+          background: 'rgba(9, 14, 26, 0.96)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
           position: 'relative'
         }}>
           {isRecording ? (
             /* LIVE VOICE RECORDING UI */
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 16px',
+              borderRadius: '24px',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.3)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '10px',
                   height: '10px',
                   borderRadius: '50%',
-                  background: 'var(--accent-danger)'
+                  background: '#ef4444'
                 }} className="animate-pulse-glow" />
-                <span style={{ fontSize: '14px', fontWeight: '700', color: '#f87171' }}>
-                  Recording Voice Note... {formatVoiceTime(recordingDuration)}
+                <span style={{ fontSize: '13.5px', fontWeight: '700', color: '#f87171' }}>
+                  Recording... {formatVoiceTime(recordingDuration)}
                 </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   onClick={cancelVoiceRecording}
                   style={{
                     background: 'rgba(255, 255, 255, 0.1)',
                     border: 'none',
-                    color: 'var(--text-secondary)',
+                    color: '#94a3b8',
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                  title="Cancel Recording"
+                >
+                  <X size={18} />
+                </button>
+
+                <button
+                  onClick={stopAndSendVoice}
+                  style={{
+                    background: '#10b981',
+                    border: 'none',
+                    color: '#ffffff',
                     width: '36px',
                     height: '36px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
+                  }}
+                  title="Send Voice Note"
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* NORMAL INPUT BAR */
+            <>
+              {/* Attachment Button (+) */}
+              <button
+                type="button"
+                onClick={() => setShowAttachMenu(!showAttachMenu)}
+                title="Attach Photo, Video, File..."
+                style={{
+                  background: showAttachMenu ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                  border: showAttachMenu ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                  color: showAttachMenu ? '#38bdf8' : '#cbd5e1',
+                  width: '40px',
+                  height: '40px',
+                  minWidth: '40px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <Paperclip size={19} />
+              </button>
+
+              {/* Message Input Pill Container */}
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '24px',
+                padding: '4px 10px',
+                minWidth: 0
+              }}>
+                {/* Burner Flame Timer Icon 🔥 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = burnerSeconds === 0 ? 5 : burnerSeconds === 5 ? 10 : 0;
+                    setBurnerSeconds(next);
+                  }}
+                  title={burnerSeconds > 0 ? `Burner Timer: ${burnerSeconds}s` : "Set Burner Self-Destruct"}
+                  style={{
+                    background: burnerSeconds > 0 ? 'rgba(239, 68, 68, 0.3)' : 'none',
+                    border: 'none',
+                    color: burnerSeconds > 0 ? '#f87171' : '#64748b',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: '800'
+                  }}
+                >
+                  {burnerSeconds > 0 ? `${burnerSeconds}s` : <Flame size={16} />}
+                </button>
+
+                {/* Input form */}
+                <form onSubmit={handleSendMessage} style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                  <input
+                    type="text"
+                    placeholder={burnerSeconds > 0 ? `🔥 [${burnerSeconds}s Burner] Type message...` : isSilentSend ? "🔕 [Silent] Type message..." : "Message..."}
+                    value={inputMessage}
+                    onChange={handleInputChange}
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      color: '#ffffff',
+                      fontSize: '14.5px',
+                      padding: '8px 4px'
+                    }}
+                  />
+                </form>
+
+                {/* Quick Replies Shortcut Button ⚡ */}
+                <button
+                  type="button"
+                  onClick={() => setShowQuickReplies(!showQuickReplies)}
+                  title="Quick Replies"
+                  style={{
+                    background: showQuickReplies ? 'rgba(6, 182, 212, 0.3)' : 'none',
+                    border: 'none',
+                    color: showQuickReplies ? '#38bdf8' : '#64748b',
+                    width: '28px',
+                    height: '28px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
@@ -2867,207 +3086,80 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     cursor: 'pointer'
                   }}
                 >
-                  <X size={18} />
+                  <Zap size={16} />
                 </button>
+              </div>
 
+              {/* Action Buttons: Send or Mic / Round Video */}
+              {inputMessage.trim() ? (
                 <button
-                  onClick={stopAndSendVoice}
-                  className="btn-success"
-                  style={{ width: '40px', height: '40px' }}
+                  onClick={handleSendMessage}
+                  type="button"
+                  style={{
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    width: '42px',
+                    height: '42px',
+                    minWidth: '42px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(2, 132, 199, 0.4)'
+                  }}
+                  title="Send Message"
                 >
                   <Send size={18} />
                 </button>
-              </div>
-            </div>
-          ) : (
-            /* NORMAL INPUT BAR */
-            <>
-              {/* Quick Replies Shortcut Button ⚡ */}
-              <button
-                type="button"
-                onClick={() => setShowQuickReplies(!showQuickReplies)}
-                title="Quick Replies (/)"
-                style={{
-                  background: showQuickReplies ? 'rgba(6, 182, 212, 0.3)' : 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid var(--border-color)',
-                  color: showQuickReplies ? 'var(--accent-cyan)' : 'var(--text-primary)',
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                <Zap size={18} />
-              </button>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {/* Voice Note Button */}
+                  <button
+                    type="button"
+                    onClick={startRecordingVoice}
+                    title="Record Voice Note"
+                    style={{
+                      background: 'rgba(6, 182, 212, 0.12)',
+                      border: '1px solid rgba(6, 182, 212, 0.25)',
+                      color: '#38bdf8',
+                      width: '40px',
+                      height: '40px',
+                      minWidth: '40px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Mic size={18} />
+                  </button>
 
-              {/* Attachment Button */}
-              <button
-                type="button"
-                onClick={() => setShowAttachMenu(!showAttachMenu)}
-                style={{
-                  background: showAttachMenu ? 'rgba(6, 182, 212, 0.2)' : 'none',
-                  border: 'none',
-                  color: showAttachMenu ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                <Paperclip size={20} />
-              </button>
-
-              {/* Silent Send Toggle 🔕 */}
-              <button
-                type="button"
-                onClick={() => setIsSilentSend(!isSilentSend)}
-                title={isSilentSend ? "Silent Send Active (No sound)" : "Send Silently"}
-                style={{
-                  background: isSilentSend ? 'rgba(59, 130, 246, 0.35)' : 'none',
-                  border: isSilentSend ? '1px solid #3b82f6' : 'none',
-                  color: isSilentSend ? '#3b82f6' : 'var(--text-muted)',
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                {isSilentSend ? <BellOff size={17} /> : <Bell size={17} />}
-              </button>
-
-              {/* Burner Flame Timer 🔥 */}
-              <button
-                type="button"
-                onClick={() => {
-                  const next = burnerSeconds === 0 ? 5 : burnerSeconds === 5 ? 10 : 0;
-                  setBurnerSeconds(next);
-                }}
-                title={burnerSeconds > 0 ? `Burner Timer: ${burnerSeconds}s` : "Set 5s/10s Burner Timer"}
-                style={{
-                  background: burnerSeconds > 0 ? 'rgba(239, 68, 68, 0.35)' : 'none',
-                  border: burnerSeconds > 0 ? '1px solid #ef4444' : 'none',
-                  color: burnerSeconds > 0 ? '#f87171' : 'var(--text-muted)',
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: '11px',
-                  fontWeight: '800'
-                }}
-              >
-                {burnerSeconds > 0 ? `${burnerSeconds}s` : <Flame size={17} />}
-              </button>
-
-              {/* Message Input */}
-              <form onSubmit={handleSendMessage} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <input
-                  type="text"
-                  placeholder={burnerSeconds > 0 ? `🔥 [${burnerSeconds}s Burner] Type message...` : isSilentSend ? "🔕 [Silent] Type message..." : "Type message or / for quick reply..."}
-                  className="spychat-input"
-                  value={inputMessage}
-                  onChange={handleInputChange}
-                />
-
-                {inputMessage.trim() ? (
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {/* Schedule Button ⏰ */}
-                    <button
-                      type="button"
-                      onClick={() => setShowScheduleModal(true)}
-                      title="Schedule Message"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-secondary)',
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Clock size={16} />
-                    </button>
-
-                    {/* Send Button */}
-                    <button
-                      type="submit"
-                      style={{
-                        background: 'var(--accent-cyan)',
-                        color: '#000',
-                        border: 'none',
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Send size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {/* Voice Note Button */}
-                    <button
-                      type="button"
-                      onClick={startRecordingVoice}
-                      title="Hold/Tap to record Voice Note"
-                      style={{
-                        background: 'rgba(6, 182, 212, 0.15)',
-                        border: '1px solid rgba(6, 182, 212, 0.3)',
-                        color: 'var(--accent-cyan)',
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Mic size={18} />
-                    </button>
-
-                    {/* Telegram-style Round Video Note Button ⭕ */}
-                    <button
-                      type="button"
-                      onClick={startRecordingRoundVideo}
-                      title="Record Telegram-style Round Video Note (⭕)"
-                      style={{
-                        background: 'rgba(139, 92, 246, 0.15)',
-                        border: '1px solid rgba(139, 92, 246, 0.3)',
-                        color: '#a855f7',
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Video size={18} />
-                    </button>
-                  </div>
-                )}
-              </form>
+                  {/* Telegram Round Video Button ⭕ */}
+                  <button
+                    type="button"
+                    onClick={startRecordingRoundVideo}
+                    title="Record Round Video Note (⭕)"
+                    style={{
+                      background: 'rgba(139, 92, 246, 0.12)',
+                      border: '1px solid rgba(139, 92, 246, 0.25)',
+                      color: '#c084fc',
+                      width: '40px',
+                      height: '40px',
+                      minWidth: '40px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Video size={18} />
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
