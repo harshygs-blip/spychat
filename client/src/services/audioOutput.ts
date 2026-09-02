@@ -86,7 +86,17 @@ class AudioOutputService {
     this.currentMode = mode;
     console.log(`[AudioOutputService] Switched audio route to: ${mode}`);
 
-    // Update all registered media elements (audio & video in calls / voice player)
+    // 1. Android Native Hardware Audio Routing (AudioManager loudspeaker / earpiece / bluetooth)
+    try {
+      if (typeof window !== 'undefined' && (window as any).AndroidAudioBridge) {
+        (window as any).AndroidAudioBridge.setAudioMode(mode);
+        console.log(`[AudioOutputService] Called AndroidAudioBridge.setAudioMode(${mode})`);
+      }
+    } catch (e) {
+      console.warn('[AudioOutputService] Error invoking AndroidAudioBridge:', e);
+    }
+
+    // 2. Update all registered media elements (audio & video in calls / voice player)
     const promises = Array.from(this.attachedMediaElements).map(el => this.applyModeToElement(el, mode));
     await Promise.allSettled(promises);
 

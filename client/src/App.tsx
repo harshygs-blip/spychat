@@ -416,9 +416,25 @@ export const App: React.FC = () => {
     };
 
     // Listen for call rejected/declined
-    const handleCallRejected = () => {
+    const handleCallRejected = (data?: { reason?: string }) => {
       stopRingtone();
-      alert('Call was declined or user is busy.');
+      alert(data?.reason || 'Call was declined.');
+      webrtcService.endCall();
+      setActiveCall(null);
+    };
+
+    // Listen for peer busy on another call
+    const handleCallBusy = (data?: { reason?: string }) => {
+      stopRingtone();
+      alert(data?.reason || 'User is currently busy on another call.');
+      webrtcService.endCall();
+      setActiveCall(null);
+    };
+
+    // Listen for call initiation failed
+    const handleCallFailed = (data?: { reason?: string }) => {
+      stopRingtone();
+      alert(data?.reason || 'Call failed.');
       webrtcService.endCall();
       setActiveCall(null);
     };
@@ -458,7 +474,8 @@ export const App: React.FC = () => {
     socketService.on('incoming_call', handleIncomingCall);
     socketService.on('call_accepted', handleCallAccepted);
     socketService.on('call_rejected', handleCallRejected);
-    socketService.on('call_busy', handleCallRejected);
+    socketService.on('call_busy', handleCallBusy);
+    socketService.on('call_failed', handleCallFailed);
     socketService.on('ice_candidate', handleIceCandidate);
     socketService.on('call_ended', handleCallEnded);
     socketService.on('call_cancelled', handleCallCancelled);
@@ -523,7 +540,8 @@ export const App: React.FC = () => {
       socketService.off('incoming_call', handleIncomingCall);
       socketService.off('call_accepted', handleCallAccepted);
       socketService.off('call_rejected', handleCallRejected);
-      socketService.off('call_busy', handleCallRejected);
+      socketService.off('call_busy', handleCallBusy);
+      socketService.off('call_failed', handleCallFailed);
       socketService.off('ice_candidate', handleIceCandidate);
       socketService.off('call_ended', handleCallEnded);
       socketService.off('call_cancelled', handleCallCancelled);

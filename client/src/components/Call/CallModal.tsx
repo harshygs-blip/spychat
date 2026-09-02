@@ -212,24 +212,34 @@ export const CallModal: React.FC<CallModalProps> = ({
   };
 
   const handleToggleScreenShare = async () => {
-    if (isScreenSharing) {
-      const cameraStream = await webrtcService.stopScreenShare();
-      setIsScreenSharing(false);
-      if (cameraStream && localVideoRef.current) {
-        const vid = localVideoRef.current;
-        vid.srcObject = cameraStream;
-        vid.play().catch(() => {});
-      }
-    } else {
-      const screenMedia = await webrtcService.startScreenShare();
-      if (screenMedia) {
-        setIsScreenSharing(true);
-        if (localVideoRef.current) {
+    try {
+      if (isScreenSharing) {
+        const cameraStream = await webrtcService.stopScreenShare();
+        setIsScreenSharing(false);
+        if (cameraStream && localVideoRef.current) {
           const vid = localVideoRef.current;
-          vid.srcObject = screenMedia;
+          vid.srcObject = cameraStream;
           vid.play().catch(() => {});
         }
+      } else {
+        const screenMedia = await webrtcService.startScreenShare();
+        if (screenMedia) {
+          setIsScreenSharing(true);
+          if (localVideoRef.current) {
+            const vid = localVideoRef.current;
+            vid.srcObject = screenMedia;
+            vid.play().catch(() => {});
+          }
+        } else {
+          // If null, it means either cancelled or device/browser does not support getDisplayMedia
+          if (typeof navigator !== 'undefined' && (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia)) {
+            alert('Screen sharing is not supported by your current Android system WebView version.');
+          }
+        }
       }
+    } catch (err: any) {
+      console.warn('Screen share toggle error:', err);
+      alert('Screen share error: ' + (err?.message || 'Unable to share screen'));
     }
   };
 

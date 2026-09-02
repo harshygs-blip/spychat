@@ -2,8 +2,12 @@ package com.spychat.app;
 
 import android.Manifest;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.view.WindowManager;
@@ -158,6 +162,72 @@ public class MainActivity extends BridgeActivity {
                     return contactsArray.toString();
                 }
             }, "AndroidContactsBridge");
+
+            // Register bridge for Hardware Audio Routing (Loudspeaker, Earpiece, Bluetooth)
+            webView.addJavascriptInterface(new Object() {
+                @android.webkit.JavascriptInterface
+                public void setAudioMode(String mode) {
+                    runOnUiThread(() -> {
+                        try {
+                            AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                            if (audioManager == null) return;
+
+                            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+
+                            if ("speaker".equalsIgnoreCase(mode)) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    audioManager.clearCommunicationDevice();
+                                    AudioDeviceInfo[] devices = audioManager.getAvailableCommunicationDevices().toArray(new AudioDeviceInfo[0]);
+                                    for (AudioDeviceInfo d : devices) {
+                                        if (d.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) {
+                                            audioManager.setCommunicationDevice(d);
+                                            break;
+                                        }
+                                    }
+                                }
+                                audioManager.setSpeakerphoneOn(true);
+                                android.util.Log.d("SPYCHAT_AUDIO", "Switched to Speaker (Loudspeaker)");
+                            } else if ("earpiece".equalsIgnoreCase(mode)) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    audioManager.clearCommunicationDevice();
+                                    AudioDeviceInfo[] devices = audioManager.getAvailableCommunicationDevices().toArray(new AudioDeviceInfo[0]);
+                                    for (AudioDeviceInfo d : devices) {
+                                        if (d.getType() == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE) {
+                                            audioManager.setCommunicationDevice(d);
+                                            break;
+                                        }
+                                    }
+                                }
+                                audioManager.setSpeakerphoneOn(false);
+                                android.util.Log.d("SPYCHAT_AUDIO", "Switched to Earpiece");
+                            } else if ("bluetooth".equalsIgnoreCase(mode)) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    audioManager.clearCommunicationDevice();
+                                    AudioDeviceInfo[] devices = audioManager.getAvailableCommunicationDevices().toArray(new AudioDeviceInfo[0]);
+                                    for (AudioDeviceInfo d : devices) {
+                                        if (d.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || d.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
+                                            audioManager.setCommunicationDevice(d);
+                                            break;
+                                        }
+                                    }
+                                }
+                                audioManager.setSpeakerphoneOn(false);
+                                audioManager.startBluetoothSco();
+                                audioManager.setBluetoothScoOn(true);
+                                android.util.Log.d("SPYCHAT_AUDIO", "Switched to Bluetooth");
+                            } else {
+                                // Reset to normal
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    audioManager.clearCommunicationDevice();
+                                }
+                                audioManager.setSpeakerphoneOn(true);
+                            }
+                        } catch (Exception e) {
+                            android.util.Log.e("SPYCHAT_AUDIO", "Failed to switch audio mode", e);
+                        }
+                    });
+                }
+            }, "AndroidAudioBridge");
         }
     }
 }

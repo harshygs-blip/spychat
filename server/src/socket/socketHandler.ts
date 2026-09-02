@@ -9,6 +9,8 @@ interface AuthenticatedSocket extends Socket {
 
 // In-memory active sockets map: userId -> Set<socketId>
 const userSockets = new Map<string, Set<string>>();
+// In-memory active calls map: userId -> peerUserId
+const userInCall = new Map<string, string>();
 let activeIo: Server | null = null;
 
 export function kickUserImmediately(userId: string, reason?: string) {
@@ -475,6 +477,33 @@ export function setupSocketHandler(io: Server): void {
 
       if (!caller) return;
 
+      // Check if Caller is already on another call
+      if (userInCall.has(userId)) {
+        socket.emit('call_failed', { reason: 'You are already on another call.' });
+        return;
+      }
+
+      // Check if Recipient is already on another call (BUSY HANDLING)
+      if (userInCall.has(recipientId)) {
+        console.log(`[Call Busy] Recipient ${recipientId} is already on another call`);
+        const busyLog: CallLog = {
+          id: 'call_' + uuidv4(),
+          caller_id: userId,
+          receiver_id: recipientId,
+          type: callType,
+          status: 'missed',
+          duration_seconds: 0,
+          created_at: new Date().toISOString()
+        };
+        db.createCallLog(busyLog);
+
+        socket.emit('call_busy', {
+          receiverId: recipientId,
+          reason: 'User is currently busy on another call.'
+        });
+        return;
+      }
+
       const isRecipientOnline = userSockets.has(recipientId) && userSockets.get(recipientId)!.size > 0;
 
       if (!isRecipientOnline) {
@@ -494,6 +523,9 @@ export function setupSocketHandler(io: Server): void {
         return;
       }
 
+      // Mark caller in tentative call state
+      userInCall.set(userId, recipientId);
+
       // Send incoming call alert to recipient with caller public profile
       io.to(`user_${recipientId}`).emit('incoming_call', {
         callerId: userId,
@@ -512,6 +544,11 @@ export function setupSocketHandler(io: Server): void {
     }) => {
       const { callerId, answer } = data;
       console.log(`[Call Accepted] By ${userId} from caller ${callerId}`);
+
+      // Track active call for both parties
+      userInCall.set(userId, callerId);
+      userInCall.set(callerId, userId);
+
       io.to(`user_${callerId}`).emit('call_accepted', {
         receiverId: userId,
         answer
@@ -523,6 +560,9 @@ export function setupSocketHandler(io: Server): void {
       const { callerId, reason } = data;
       console.log(`[Call Rejected] By ${userId} from caller ${callerId}`);
       
+      userInCall.delete(userId);
+      userInCall.delete(callerId);
+
       const declLog: CallLog = {
         id: 'call_' + uuidv4(),
         caller_id: callerId,
@@ -543,14 +583,18 @@ export function setupSocketHandler(io: Server): void {
     // 4. Receiver is busy
     socket.on('call_busy', (data: { callerId: string }) => {
       const { callerId } = data;
+      userInCall.delete(callerId);
       io.to(`user_${callerId}`).emit('call_busy', {
-        receiverId: userId
+        receiverId: userId,
+        reason: 'User is currently on another call.'
       });
     });
 
     // 5. Caller cancels call before answered
     socket.on('call_cancelled', (data: { recipientId: string }) => {
       const { recipientId } = data;
+      userInCall.delete(userId);
+      userInCall.delete(recipientId);
       io.to(`user_${recipientId}`).emit('call_cancelled', {
         callerId: userId
       });
@@ -577,7 +621,9 @@ export function setupSocketHandler(io: Server): void {
       const { targetUserId, durationSeconds, callType } = data;
       console.log(`[Call Ended] Between ${userId} and ${targetUserId}`);
 
+      userInCall.delete(userId);
       if (targetUserId) {
+        userInCall.delete(targetUserId);
         io.to(`user_${targetUserId}`).emit('call_ended', {
           endedBy: userId
         });
@@ -678,6 +724,16 @@ export function setupSocketHandler(io: Server): void {
 
     // --- DISCONNECT ---
     socket.on('disconnect', () => {
+      // If user was in a call, notify peer and cleanup
+      if (userInCall.has(userId)) {
+        const peerId = userInCall.get(userId);
+        userInCall.delete(userId);
+        if (peerId) {
+          userInCall.delete(peerId);
+          io.to(`user_${peerId}`).emit('call_ended', { endedBy: userId });
+        }
+      }
+
       const sockets = userSockets.get(userId);
       if (sockets) {
         sockets.delete(socket.id);
