@@ -188,20 +188,34 @@ export const ChatList: React.FC<ChatListProps> = ({
             </button>
 
             {showMenu && (
-              <div className="glass" style={{
-                position: 'absolute',
-                top: '48px',
-                right: '0',
-                width: '210px',
-                borderRadius: '16px',
-                padding: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-                boxShadow: '0 15px 40px rgba(0,0,0,0.85)',
-                border: '1px solid var(--border-color-glow)',
-                zIndex: 100
-              }}>
+              <>
+                {/* Random screen tap backdrop to close */}
+                <div
+                  onClick={() => setShowMenu(false)}
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 99,
+                    background: 'transparent'
+                  }}
+                />
+
+                <div className="glass ios-menu-animate" style={{
+                  position: 'absolute',
+                  top: '48px',
+                  right: '0',
+                  width: '215px',
+                  borderRadius: '18px',
+                  padding: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.92), 0 0 25px rgba(6, 182, 212, 0.25)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  background: 'rgba(10, 16, 32, 0.98)',
+                  backdropFilter: 'blur(30px)',
+                  zIndex: 100
+                }}>
                 {/* Toggle Archived Chats */}
                 <button
                   onClick={() => {
@@ -284,6 +298,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                   <Check size={16} /> Mark all read
                 </button>
               </div>
+              </>
             )}
           </div>
         </div>
@@ -439,10 +454,12 @@ export const ChatList: React.FC<ChatListProps> = ({
                     alignItems: 'center',
                     gap: '12px',
                     cursor: 'pointer',
-                    transform: `translateX(${currentOffset}px)`,
-                    transition: isDraggingRef.current && isCurrentSwiping ? 'none' : 'transform 0.25s ease',
+                    transform: `translateX(${currentOffset}px) scale(${isCurrentSwiping && Math.abs(currentOffset) > 10 ? 0.985 : 1})`,
+                    transition: isDraggingRef.current && isCurrentSwiping ? 'none' : 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
                     position: 'relative',
-                    border: isPinned ? '1px solid var(--accent-primary)' : undefined,
+                    border: isPinned ? '1px solid rgba(16, 185, 129, 0.6)' : '1px solid rgba(255, 255, 255, 0.07)',
+                    background: isPinned ? 'rgba(16, 185, 129, 0.06)' : 'rgba(14, 23, 42, 0.75)',
+                    backdropFilter: 'blur(16px)',
                     zIndex: 2,
                     userSelect: 'none',
                     touchAction: 'pan-y'
@@ -642,28 +659,36 @@ export const ChatList: React.FC<ChatListProps> = ({
 
       {/* TELEGRAM-STYLE DELETE CHAT MODAL (OUTSIDE CHAT) */}
       {chatToDelete && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px',
-          zIndex: 200
-        }}>
-          <div className="glass" style={{
-            width: '100%',
-            maxWidth: '340px',
-            borderRadius: '20px',
-            padding: '20px',
+        <div 
+          onClick={() => setChatToDelete(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 200
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass ios-sheet-animate" 
+            style={{
+              width: '100%',
+              maxWidth: '340px',
+              borderRadius: '24px',
+              padding: '22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              background: 'rgba(10, 16, 32, 0.98)'
+            }}
+          >
             <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#ffffff' }}>Delete chat?</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
               Are you sure you want to delete the chat with {chatToDelete.peer?.display_name || 'this user'}?

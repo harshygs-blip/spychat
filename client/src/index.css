@@ -313,6 +313,36 @@ body {
   }
 }
 
+@keyframes iosBottomSheetUp {
+  0% {
+    opacity: 0;
+    transform: translateY(100%) scale(0.95);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes iosScaleUpFade {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(-8px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.02) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 @keyframes bubblePopIn {
   from {
     opacity: 0;
@@ -322,6 +352,17 @@ body {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+.ios-sheet-animate {
+  animation: iosBottomSheetUp 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.ios-menu-animate {
+  transform-origin: top right;
+  animation: iosScaleUpFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 /* 60FPS Hardware Accelerated Ultra-Smooth Chat Elements */

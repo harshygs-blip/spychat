@@ -1407,7 +1407,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       }}
                     />
 
-                    <div className="glass" style={{
+                    <div className="glass ios-menu-animate" style={{
                       position: 'fixed',
                       top: '56px',
                       right: '12px',
@@ -1421,8 +1421,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       border: '1.5px solid rgba(6, 182, 212, 0.4)',
                       zIndex: 9999,
                       background: 'rgba(10, 16, 32, 0.98)',
-                      backdropFilter: 'blur(30px)',
-                      animation: 'scaleUpFade 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+                      backdropFilter: 'blur(30px)'
                     }}>
                       {/* View Contact Info */}
                       <button
@@ -1602,52 +1601,68 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* DISAPPEARING TIMER POPUP */}
       {showDisappearingMenu && (
-        <div className="glass" style={{
-          position: 'absolute',
-          top: '64px',
-          right: '16px',
-          borderRadius: '16px',
-          padding: '12px',
-          width: '220px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
-          border: '1px solid var(--accent-cyan)',
-          zIndex: 50
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Timer size={16} /> Disappearing Messages
+        <>
+          <div
+            onClick={() => setShowDisappearingMenu(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 48,
+              background: 'transparent'
+            }}
+          />
+          <div className="glass ios-menu-animate" style={{
+            position: 'absolute',
+            top: '64px',
+            right: '16px',
+            borderRadius: '20px',
+            padding: '14px',
+            width: '230px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 25px rgba(6, 182, 212, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            background: 'rgba(10, 16, 32, 0.98)',
+            backdropFilter: 'blur(30px)',
+            zIndex: 50
+          }}>
+            <div style={{ fontSize: '13.5px', fontWeight: '800', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Timer size={16} /> Disappearing Messages
+            </div>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              Messages will self-destruct after the chosen duration.
+            </p>
+            {[
+              { label: 'Off', seconds: 0 },
+              { label: '1 Minute', seconds: 60 },
+              { label: '5 Minutes', seconds: 300 },
+              { label: '1 Hour', seconds: 3600 },
+              { label: '24 Hours', seconds: 86400 }
+            ].map(opt => (
+              <button
+                key={opt.seconds}
+                onClick={() => {
+                  handleSetTimer(opt.seconds);
+                  setShowDisappearingMenu(false);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  background: disappearingTimer === opt.seconds ? 'var(--accent-cyan)' : 'rgba(255, 255, 255, 0.05)',
+                  color: disappearingTimer === opt.seconds ? '#000' : 'var(--text-primary)',
+                  border: 'none',
+                  textAlign: 'left',
+                  fontSize: '12.5px',
+                  fontWeight: disappearingTimer === opt.seconds ? '700' : '400',
+                  cursor: 'pointer'
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            Messages will self-destruct after the chosen duration.
-          </p>
-          {[
-            { label: 'Off', seconds: 0 },
-            { label: '1 Minute', seconds: 60 },
-            { label: '5 Minutes', seconds: 300 },
-            { label: '1 Hour', seconds: 3600 },
-            { label: '24 Hours', seconds: 86400 }
-          ].map(opt => (
-            <button
-              key={opt.seconds}
-              onClick={() => handleSetTimer(opt.seconds)}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '8px',
-                background: disappearingTimer === opt.seconds ? 'var(--accent-cyan)' : 'rgba(255, 255, 255, 0.05)',
-                color: disappearingTimer === opt.seconds ? '#000' : 'var(--text-primary)',
-                border: 'none',
-                textAlign: 'left',
-                fontSize: '12px',
-                fontWeight: disappearingTimer === opt.seconds ? '700' : '400',
-                cursor: 'pointer'
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        </>
       )}
 
       {/* Messages Scroll Area */}
@@ -2467,110 +2482,144 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* PRODUCT CATALOG BOTTOM SHEET */}
       {showCatalogSheet && (
-        <div className="glass" style={{
-          position: 'absolute',
-          bottom: '68px',
-          left: '12px',
-          right: '12px',
-          maxHeight: '260px',
-          overflowY: 'auto',
-          borderRadius: '16px',
-          padding: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
-          border: '1px solid var(--accent-cyan)',
-          zIndex: 45
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 6px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ShoppingBag size={15} /> Select Product to Share
-            </span>
-            <button onClick={() => setShowCatalogSheet(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-              <X size={16} />
-            </button>
-          </div>
-
-          {catalogItems.map(item => (
-            <div
-              key={item.id}
-              onClick={() => handleShareProduct(item)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '12px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer'
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: '700', fontSize: '14px' }}>{item.title}</div>
-                <div style={{ fontSize: '12px', color: 'var(--accent-emerald)', fontWeight: '700' }}>{item.price}</div>
-              </div>
-              <span style={{ fontSize: '11px', color: 'var(--accent-cyan)' }}>Tap to Send →</span>
+        <>
+          <div
+            onClick={() => setShowCatalogSheet(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 44,
+              background: 'rgba(0, 0, 0, 0.4)'
+            }}
+          />
+          <div className="glass ios-sheet-animate" style={{
+            position: 'absolute',
+            bottom: '72px',
+            left: '12px',
+            right: '12px',
+            maxHeight: '280px',
+            overflowY: 'auto',
+            borderRadius: '22px',
+            padding: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 25px rgba(6, 182, 212, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
+            background: 'rgba(10, 16, 32, 0.98)',
+            backdropFilter: 'blur(30px)',
+            zIndex: 45
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 6px' }}>
+              <span style={{ fontSize: '13.5px', fontWeight: '800', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShoppingBag size={16} /> Select Product to Share
+              </span>
+              <button onClick={() => setShowCatalogSheet(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                <X size={18} />
+              </button>
             </div>
-          ))}
-        </div>
+
+            {catalogItems.map(item => (
+              <div
+                key={item.id}
+                onClick={() => {
+                  handleShareProduct(item);
+                  setShowCatalogSheet(false);
+                }}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '14px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer'
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '14px', color: '#ffffff' }}>{item.title}</div>
+                  <div style={{ fontSize: '12px', color: '#34d399', fontWeight: '700', marginTop: '2px' }}>{item.price}</div>
+                </div>
+                <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>Tap to Send →</span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* QUICK REPLIES BOTTOM SHEET */}
       {showQuickReplies && (
-        <div className="glass" style={{
-          position: 'absolute',
-          bottom: '68px',
-          left: '12px',
-          right: '12px',
-          maxHeight: '220px',
-          overflowY: 'auto',
-          borderRadius: '16px',
-          padding: '10px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
-          border: '1px solid var(--accent-cyan)',
-          zIndex: 45
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Zap size={14} /> Quick Reply Shortcuts (Tap to Send)
-            </span>
-            <button onClick={() => setShowQuickReplies(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-              <X size={16} />
-            </button>
-          </div>
+        <>
+          <div
+            onClick={() => setShowQuickReplies(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 44,
+              background: 'rgba(0, 0, 0, 0.4)'
+            }}
+          />
+          <div className="glass ios-sheet-animate" style={{
+            position: 'absolute',
+            bottom: '72px',
+            left: '12px',
+            right: '12px',
+            maxHeight: '240px',
+            overflowY: 'auto',
+            borderRadius: '22px',
+            padding: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 25px rgba(6, 182, 212, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
+            background: 'rgba(10, 16, 32, 0.98)',
+            backdropFilter: 'blur(30px)',
+            zIndex: 45
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Zap size={15} /> Quick Reply Shortcuts
+              </span>
+              <button onClick={() => setShowQuickReplies(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                <X size={18} />
+              </button>
+            </div>
 
-          {quickReplies.map((qr, idx) => (
-            <div
-              key={idx}
-              onClick={() => handleSendQuickReply(qr)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <div>
-                <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--accent-cyan)', fontFamily: 'monospace' }}>
-                  {qr.trigger}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-primary)', marginLeft: '8px' }}>
-                  {qr.response || '[Media File]'}
+            {quickReplies.map((qr, idx) => (
+              <div
+                key={idx}
+                onClick={() => {
+                  handleSendQuickReply(qr);
+                  setShowQuickReplies(false);
+                }}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '13.5px', fontWeight: '700', color: '#38bdf8', fontFamily: 'monospace' }}>
+                    {qr.trigger}
+                  </span>
+                  <span style={{ fontSize: '12.5px', color: '#ffffff', marginLeft: '10px' }}>
+                    {qr.response || '[Media File]'}
+                  </span>
+                </div>
+                <span style={{ fontSize: '10.5px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600' }}>
+                  {qr.message_type || 'text'}
                 </span>
               </div>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                {qr.message_type || 'text'}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* ATTACHMENT POPUP MENU (CLEAN 4-COLUMN FLOATING GRID SHEET) */}
