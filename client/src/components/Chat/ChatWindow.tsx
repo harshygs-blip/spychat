@@ -100,6 +100,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [showDeleteChatModal, setShowDeleteChatModal] = useState(false);
   const [deleteChatForBoth, setDeleteChatForBoth] = useState(true);
   const [showTopMenu, setShowTopMenu] = useState(false);
+  const topMenuContainerRef = useRef<HTMLDivElement>(null);
+
+  // Close Inside Chat 3-dots menu on outside tap anywhere on screen (touch & click)
+  useEffect(() => {
+    if (!showTopMenu) return;
+
+    const handleOutsideTap = (event: MouseEvent | TouchEvent) => {
+      if (topMenuContainerRef.current && !topMenuContainerRef.current.contains(event.target as Node)) {
+        setShowTopMenu(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handleOutsideTap, true);
+    document.addEventListener('touchstart', handleOutsideTap, true);
+    document.addEventListener('mousedown', handleOutsideTap, true);
+
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideTap, true);
+      document.removeEventListener('touchstart', handleOutsideTap, true);
+      document.removeEventListener('mousedown', handleOutsideTap, true);
+    };
+  }, [showTopMenu]);
+
   const [showContactInfoModal, setShowContactInfoModal] = useState(false);
   const [showDisappearingModal, setShowDisappearingModal] = useState(false);
   const [disappearingTimerSeconds, setDisappearingTimerSeconds] = useState<number>(conversation.disappearing_timer_seconds || 0);
@@ -1373,8 +1396,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             </>
           )}
 
-          {/* 3-Dots Top Menu */}
-          <div style={{ position: 'relative' }}>
+          {/* 3-DOTS TOP MENU */}
+          <div ref={topMenuContainerRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setShowTopMenu(!showTopMenu)}
               title="More Options"

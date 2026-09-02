@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Conversation } from '../../types';
 import { Search, Plus, Lock, Pin, Trash2, Timer, Archive, ArchiveRestore, Check, MoreVertical, Star, Shield } from 'lucide-react';
 import { socketService } from '../../services/socket';
@@ -26,6 +26,28 @@ export const ChatList: React.FC<ChatListProps> = ({
   const [archivedIds, setArchivedIds] = useState<string[]>([]);
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
+
+  // Close 3-dots menu on outside tap anywhere on screen (touch & click)
+  useEffect(() => {
+    if (!showMenu) return;
+
+    const handleOutsideTap = (event: MouseEvent | TouchEvent) => {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handleOutsideTap, true);
+    document.addEventListener('touchstart', handleOutsideTap, true);
+    document.addEventListener('mousedown', handleOutsideTap, true);
+
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideTap, true);
+      document.removeEventListener('touchstart', handleOutsideTap, true);
+      document.removeEventListener('mousedown', handleOutsideTap, true);
+    };
+  }, [showMenu]);
 
   // Telegram Style Delete Chat Modal (Outside chat)
   const [chatToDelete, setChatToDelete] = useState<Conversation | null>(null);
@@ -167,7 +189,7 @@ export const ChatList: React.FC<ChatListProps> = ({
           </div>
 
           {/* 3-DOTS TOP ACTIONS MENU */}
-          <div style={{ position: 'relative' }}>
+          <div ref={menuContainerRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setShowMenu(!showMenu)}
               title="Chat Options"
