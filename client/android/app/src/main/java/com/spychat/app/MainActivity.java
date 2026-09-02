@@ -62,6 +62,23 @@ public class MainActivity extends BridgeActivity {
             settings.setJavaScriptCanOpenWindowsAutomatically(true);
             settings.setAllowFileAccess(true);
             settings.setDomStorageEnabled(true);
+
+            // Register bridge to allow screenshare bypass of black screen (FLAG_SECURE)
+            webView.addJavascriptInterface(new Object() {
+                @android.webkit.JavascriptInterface
+                public void setSecure(boolean secure) {
+                    runOnUiThread(() -> {
+                        if (secure) {
+                            getWindow().setFlags(
+                                WindowManager.LayoutParams.FLAG_SECURE,
+                                WindowManager.LayoutParams.FLAG_SECURE
+                            );
+                        } else {
+                            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                        }
+                    });
+                }
+            }, "AndroidSecureScreen");
         }
     }
 }

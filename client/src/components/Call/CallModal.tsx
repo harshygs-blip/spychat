@@ -15,7 +15,9 @@ import {
   ChevronDown,
   MessageSquare,
   PictureInPicture,
-  Minimize2
+  Minimize2,
+  Monitor,
+  MonitorOff
 } from 'lucide-react';
 import { ActiveCall, User } from '../../types';
 import { webrtcService } from '../../services/webrtc';
@@ -41,6 +43,7 @@ export const CallModal: React.FC<CallModalProps> = ({
   const [selectedEffect, setSelectedEffect] = useState<'normal' | 'robot' | 'deep' | 'radio'>('normal');
   const [audioMode, setAudioMode] = useState<AudioOutputMode>(audioOutputService.getCurrentMode());
   const [isFrontCamera, setIsFrontCamera] = useState<boolean>(webrtcService.getIsFrontCamera());
+  const [isScreenSharing, setIsScreenSharing] = useState<boolean>(webrtcService.getIsScreenSharing());
   const [showAudioMenu, setShowAudioMenu] = useState<boolean>(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -208,6 +211,28 @@ export const CallModal: React.FC<CallModalProps> = ({
     }
   };
 
+  const handleToggleScreenShare = async () => {
+    if (isScreenSharing) {
+      const cameraStream = await webrtcService.stopScreenShare();
+      setIsScreenSharing(false);
+      if (cameraStream && localVideoRef.current) {
+        const vid = localVideoRef.current;
+        vid.srcObject = cameraStream;
+        vid.play().catch(() => {});
+      }
+    } else {
+      const screenMedia = await webrtcService.startScreenShare();
+      if (screenMedia) {
+        setIsScreenSharing(true);
+        if (localVideoRef.current) {
+          const vid = localVideoRef.current;
+          vid.srcObject = screenMedia;
+          vid.play().catch(() => {});
+        }
+      }
+    }
+  };
+
   const handleCycleAudioMode = async () => {
     const next = await audioOutputService.cycleOutputMode();
     setAudioMode(next);
@@ -360,9 +385,9 @@ export const CallModal: React.FC<CallModalProps> = ({
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
-                transform: isFrontCamera ? 'scaleX(-1)' : 'none', // Natural selfie mirror only for front camera
-                filter: 'contrast(1.03) brightness(1.02) saturate(1.06)',
+                objectFit: isScreenSharing ? 'contain' : 'cover',
+                transform: (!isScreenSharing && isFrontCamera) ? 'scaleX(-1)' : 'none', // Do NOT mirror screenshare
+                filter: isScreenSharing ? 'none' : 'contrast(1.03) brightness(1.02) saturate(1.06)',
                 pointerEvents: 'none'
               }}
             />
@@ -592,6 +617,34 @@ export const CallModal: React.FC<CallModalProps> = ({
             }}
           >
             <SwitchCamera size={22} />
+          </button>
+        )}
+
+        {/* Screen Share Button (With Android Black Screen Bypass) */}
+        {callType === 'video' && (
+          <button
+            onClick={handleToggleScreenShare}
+            title={isScreenSharing ? 'Stop Screen Sharing' : 'Share Screen (Bypass Black Screen)'}
+            style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: isScreenSharing ? 'rgba(6, 182, 212, 0.35)' : 'rgba(255, 255, 255, 0.12)',
+              border: isScreenSharing ? '1.5px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+              color: isScreenSharing ? '#06b6d4' : '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              cursor: 'pointer',
+              boxShadow: isScreenSharing ? '0 0 20px rgba(6, 182, 212, 0.5)' : 'none'
+            }}
+          >
+            {isScreenSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
+            <span style={{ fontSize: '8px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+              {isScreenSharing ? 'Stop' : 'Share'}
+            </span>
           </button>
         )}
 

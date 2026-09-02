@@ -49,10 +49,12 @@ export class WebRTCService {
   private peerConnection: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
   private rawAudioStream: MediaStream | null = null;
+  private screenStream: MediaStream | null = null;
   private remoteStream: MediaStream | null = null;
   private targetUserId: string | null = null;
   private isAudioOnly: boolean = false;
   private isFrontCamera: boolean = true;
+  private isScreenSharing: boolean = false;
   private pendingCandidates: RTCIceCandidateInit[] = [];
   private activeIceServers: RTCIceServer[] = ICE_SERVERS.iceServers || [];
 
@@ -93,6 +95,14 @@ export class WebRTCService {
 
   public getIsFrontCamera(): boolean {
     return this.isFrontCamera;
+  }
+
+  public getIsScreenSharing(): boolean {
+    return this.isScreenSharing;
+  }
+
+  public getScreenStream(): MediaStream | null {
+    return this.screenStream;
   }
 
   // Initialize Local Media (Camera/Mic) - Reuses active stream if already running
@@ -540,6 +550,97 @@ export class WebRTCService {
     return newStream;
   }
 
+  // Start Screen Sharing
+  public async startScreenShare(): Promise<MediaStream | null> {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error('Screen sharing is not supported on this platform/browser.');
+      }
+
+      // Temporarily bypass Android FLAG_SECURE black screen if running in Capacitor
+      if (typeof window !== 'undefined' && (window as any).AndroidSecureScreen) {
+        try {
+          (window as any).AndroidSecureScreen.setSecure(false);
+          console.log('[WebRTC] Android FLAG_SECURE disabled for screenshare session');
+        } catch (e) {
+          console.warn('[WebRTC] Could not toggle AndroidSecureScreen:', e);
+        }
+      }
+
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          cursor: 'always'
+        } as any,
+        audio: false
+      });
+
+      this.screenStream = stream;
+      this.isScreenSharing = true;
+
+      const screenVideoTrack = stream.getVideoTracks()[0];
+
+      if (this.peerConnection && screenVideoTrack) {
+        const senders = this.peerConnection.getSenders();
+        const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+        if (videoSender) {
+          await videoSender.replaceTrack(screenVideoTrack);
+        }
+      }
+
+      // Auto-revert when user clicks native OS "Stop Sharing" floating bar
+      screenVideoTrack.onended = () => {
+        this.stopScreenShare();
+      };
+
+      return stream;
+    } catch (err: any) {
+      console.warn('[WebRTC] Screen sharing error or cancelled:', err);
+      // Re-enable FLAG_SECURE if cancelled
+      if (typeof window !== 'undefined' && (window as any).AndroidSecureScreen) {
+        try {
+          (window as any).AndroidSecureScreen.setSecure(true);
+        } catch {}
+      }
+      return null;
+    }
+  }
+
+  // Stop Screen Sharing & Revert to Camera
+  public async stopScreenShare(): Promise<MediaStream | null> {
+    if (!this.isScreenSharing && !this.screenStream) return null;
+
+    if (this.screenStream) {
+      this.screenStream.getTracks().forEach(track => {
+        try { track.stop(); } catch {}
+      });
+      this.screenStream = null;
+    }
+    this.isScreenSharing = false;
+
+    // Re-enforce Android FLAG_SECURE screenshot / recording protection
+    if (typeof window !== 'undefined' && (window as any).AndroidSecureScreen) {
+      try {
+        (window as any).AndroidSecureScreen.setSecure(true);
+        console.log('[WebRTC] Android FLAG_SECURE re-enabled after screenshare');
+      } catch (e) {
+        console.warn('[WebRTC] Could not restore AndroidSecureScreen:', e);
+      }
+    }
+
+    // Restore Camera Stream to peer
+    const cameraStream = this.localStream || await this.getLocalMedia('video');
+    if (this.peerConnection && cameraStream) {
+      const cameraVideoTrack = cameraStream.getVideoTracks()[0];
+      const senders = this.peerConnection.getSenders();
+      const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+      if (videoSender && cameraVideoTrack) {
+        await videoSender.replaceTrack(cameraVideoTrack);
+      }
+    }
+
+    return cameraStream;
+  }
+
   // End Call & Cleanup
   public endCall(): void {
     this.stopLocalMedia();
@@ -563,6 +664,16 @@ export class WebRTCService {
   }
 
   private stopLocalMedia(): void {
+    if (this.screenStream) {
+      this.screenStream.getTracks().forEach(track => {
+        try { track.stop(); } catch {}
+      });
+      this.screenStream = null;
+      this.isScreenSharing = false;
+      if (typeof window !== 'undefined' && (window as any).AndroidSecureScreen) {
+        try { (window as any).AndroidSecureScreen.setSecure(true); } catch {}
+      }
+    }
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => {
         try { track.stop(); } catch {}
