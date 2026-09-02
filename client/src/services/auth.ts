@@ -90,21 +90,32 @@ export class AuthService {
         }
       }
 
-      // If token expired, attempt refresh
-      const refreshToken = this.getRefreshToken();
-      if (refreshToken) {
-        const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken })
-        });
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          if (refreshData.accessToken) {
-            localStorage.setItem(this.tokenKey, refreshData.accessToken);
-            return this.getMe();
+      // If banned or forbidden by firewall (403), IMMEDIATELY wipe session
+      if (res.status === 403) {
+        console.warn('[AuthService] Account or IP banned by Administrator. Evicting session.');
+        this.clearSession();
+        return null;
+      }
+
+      // If token expired (401), attempt refresh
+      if (res.status === 401) {
+        const refreshToken = this.getRefreshToken();
+        if (refreshToken) {
+          const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken })
+          });
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            if (refreshData.accessToken) {
+              localStorage.setItem(this.tokenKey, refreshData.accessToken);
+              return this.getMe();
+            }
           }
         }
+        this.clearSession();
+        return null;
       }
 
       return this.getUser();

@@ -27,6 +27,14 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
     return;
   }
 
+  if (user.is_banned) {
+    res.status(403).json({ 
+      error: `Account Suspended: ${user.ban_reason || 'Your account has been banned by Administrator.'}`,
+      is_banned: true 
+    });
+    return;
+  }
+
   req.userId = payload.sub;
   next();
 }

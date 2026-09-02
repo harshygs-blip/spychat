@@ -9,8 +9,54 @@ interface AuthenticatedSocket extends Socket {
 
 // In-memory active sockets map: userId -> Set<socketId>
 const userSockets = new Map<string, Set<string>>();
+let activeIo: Server | null = null;
+
+export function kickUserImmediately(userId: string, reason?: string) {
+  if (!activeIo) return;
+  const reasonText = reason || 'Your account has been suspended by Administrator.';
+  
+  // 1. Emit force_logout event with reason to target user room
+  activeIo.to(`user_${userId}`).emit('account_banned', {
+    reason: reasonText,
+    timestamp: new Date().toISOString()
+  });
+  activeIo.to(`user_${userId}`).emit('force_logout', {
+    reason: reasonText
+  });
+
+  // 2. Terminate all open socket connections for this user immediately
+  const sockets = activeIo.sockets.sockets;
+  sockets.forEach((s: AuthenticatedSocket) => {
+    if (s.userId === userId) {
+      s.disconnect(true);
+    }
+  });
+
+  userSockets.delete(userId);
+  console.log(`[Security Firewall] Immediately kicked & disconnected banned user: ${userId}`);
+}
+
+export function kickIpImmediately(ip: string, reason?: string) {
+  if (!activeIo) return;
+  const cleanIp = ip.trim().replace(/^::ffff:/, '');
+  const reasonText = reason || 'Your IP address has been blacklisted by Administrator.';
+
+  const sockets = activeIo.sockets.sockets;
+  sockets.forEach((s: AuthenticatedSocket) => {
+    const clientIp = (s.handshake.headers['x-forwarded-for'] as string || s.handshake.address || '')
+      .split(',')[0].trim().replace(/^::ffff:/, '');
+    if (clientIp === cleanIp || (s.userId && db.findUserById(s.userId)?.last_ip?.replace(/^::ffff:/, '') === cleanIp)) {
+      s.emit('account_banned', { reason: reasonText, ip: cleanIp });
+      s.emit('force_logout', { reason: reasonText });
+      s.disconnect(true);
+      if (s.userId) userSockets.delete(s.userId);
+      console.log(`[Security Firewall] Immediately severed socket connection for banned IP: ${cleanIp} (User: ${s.userId})`);
+    }
+  });
+}
 
 export function setupSocketHandler(io: Server): void {
+  activeIo = io;
   // Authentication middleware for Socket.io
   io.use((socket: AuthenticatedSocket, next) => {
     const clientIp = (socket.handshake.headers['x-forwarded-for'] as string || socket.handshake.address || '').split(',')[0].trim();

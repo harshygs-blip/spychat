@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import os from 'os';
 import { db } from '../database/db';
+import { kickUserImmediately, kickIpImmediately } from '../socket/socketHandler';
 
 export const ADMIN_MASTER_KEY = (process.env.ADMIN_MASTER_KEY || 'shivambhatt@admin').trim().toLowerCase();
 
@@ -70,8 +71,12 @@ export function banUser(req: Request, res: Response) {
     const { userId, reason } = req.body;
     if (!userId) return res.status(400).json({ error: 'User ID required' });
 
-    const ok = db.banUser(userId, reason || 'Banned by Super Admin');
+    const banReason = reason || 'Banned by Super Admin';
+    const ok = db.banUser(userId, banReason);
     if (!ok) return res.status(404).json({ error: 'User not found' });
+
+    // Instantly disconnect socket and force logout in real-time
+    kickUserImmediately(userId, banReason);
 
     res.json({ success: true, message: `User ${userId} banned successfully.` });
   } catch (err: any) {
@@ -100,6 +105,9 @@ export function deleteUser(req: Request, res: Response) {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'User ID required' });
 
+    // Immediately kick user before deletion
+    kickUserImmediately(userId, 'Your account has been deleted by Administrator.');
+
     const ok = db.deleteUserAdmin(userId);
     if (!ok) return res.status(404).json({ error: 'User not found' });
 
@@ -118,8 +126,13 @@ export function banIp(req: Request, res: Response) {
   const { ip } = req.body;
   if (!ip || !ip.trim()) return res.status(400).json({ error: 'Valid IP address required' });
 
-  db.banIp(ip.trim());
-  res.json({ success: true, message: `IP ${ip} added to firewall ban list.`, banned_ips: db.getBannedIps() });
+  const cleanIp = ip.trim();
+  db.banIp(cleanIp);
+
+  // Instantly kick any connected sockets matching this IP
+  kickIpImmediately(cleanIp, 'Your IP address has been blacklisted by Administrator.');
+
+  res.json({ success: true, message: `IP ${cleanIp} added to firewall ban list.`, banned_ips: db.getBannedIps() });
 }
 
 export function unbanIp(req: Request, res: Response) {

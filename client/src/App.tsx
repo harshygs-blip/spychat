@@ -453,6 +453,39 @@ export const App: React.FC = () => {
     socketService.on('new_version_available', handleNewVersionAvailable);
     socketService.on('new_build_broadcast', handleNewVersionAvailable);
 
+    // Listen for Instant Account Ban / IP Ban Eviction from Admin Portal
+    const handleAccountBanned = (data: any) => {
+      console.warn('[Security] Account or IP banned by Administrator:', data);
+      const reason = data?.reason || 'Your account or IP address has been permanently suspended by Administrator.';
+      
+      // Stop any active call / media immediately
+      try {
+        stopRingtone();
+        webrtcService.endCall();
+      } catch {}
+
+      // Wipe tokens and local session immediately
+      AuthService.clearSession();
+      socketService.disconnect();
+      setCurrentUser(null);
+      setActiveConversation(null);
+      setActiveCall(null);
+      setIncomingCall(null);
+
+      // Show instant suspension alert
+      alert(`⛔ ACCESS DENIED / ACCOUNT BANNED\n\n${reason}\n\nYou have been immediately evicted from SPYCHAT.`);
+
+      // Exit Android app if running on native device
+      if (Capacitor.isNativePlatform()) {
+        CapacitorApp.exitApp();
+      } else {
+        window.location.href = '/';
+      }
+    };
+
+    socketService.on('account_banned', handleAccountBanned);
+    socketService.on('force_logout', handleAccountBanned);
+
     // Listen for Emergency Admin Broadcasts
     const handleAdminBroadcast = (data: any) => {
       playMessageChime();
@@ -485,6 +518,8 @@ export const App: React.FC = () => {
       socketService.off('new_version_available', handleNewVersionAvailable);
       socketService.off('new_build_broadcast', handleNewVersionAvailable);
       socketService.off('admin_broadcast', handleAdminBroadcast);
+      socketService.off('account_banned', handleAccountBanned);
+      socketService.off('force_logout', handleAccountBanned);
     };
   }, [currentUser, activeConversation, reloadConversations]);
 
