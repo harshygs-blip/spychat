@@ -94,6 +94,17 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 @android.webkit.JavascriptInterface
+                public void requestContactsPermission() {
+                    runOnUiThread(() -> {
+                        ActivityCompat.requestPermissions(
+                            MainActivity.this,
+                            new String[]{Manifest.permission.READ_CONTACTS},
+                            PERMISSION_REQUEST_CODE
+                        );
+                    });
+                }
+
+                @android.webkit.JavascriptInterface
                 public String getContactsJson() {
                     if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
                         return "[]";

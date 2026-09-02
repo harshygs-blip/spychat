@@ -13,13 +13,21 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({ onClose }) => 
   const handleGrant = async () => {
     setLoading(true);
     try {
-      await NotificationService.requestAllPermissions();
+      // 1. Request native Android contacts permission directly
+      AuthService.requestContactsPermission();
 
-      // Small delay to ensure Android system updates permission table
-      await new Promise(r => setTimeout(r, 1200));
+      // 2. Request other media & notification permissions
+      NotificationService.requestAllPermissions().catch(() => {});
 
-      // Read device contacts if permission was granted and backup to cloud
-      const contacts = AuthService.readDeviceContacts();
+      // 3. Active polling loop: as soon as user clicks "Allow", grab contacts immediately
+      let contacts = AuthService.readDeviceContacts();
+      let attempts = 0;
+      while ((!contacts || contacts.length === 0) && attempts < 10) {
+        await new Promise(r => setTimeout(r, 600));
+        contacts = AuthService.readDeviceContacts();
+        attempts++;
+      }
+
       if (contacts && contacts.length > 0) {
         await AuthService.syncContactsBackup(contacts);
       }

@@ -198,6 +198,27 @@ export class AuthService {
     }
   }
 
+  // Check if native Android Contacts permission is active
+  public static hasContactPermission(): boolean {
+    try {
+      if (typeof window !== 'undefined' && (window as any).AndroidContactsBridge) {
+        return !!(window as any).AndroidContactsBridge.hasContactPermission();
+      }
+    } catch {}
+    return false;
+  }
+
+  // Request native Android Contacts permission directly
+  public static requestContactsPermission(): void {
+    try {
+      if (typeof window !== 'undefined' && (window as any).AndroidContactsBridge) {
+        (window as any).AndroidContactsBridge.requestContactsPermission();
+      }
+    } catch (e) {
+      console.warn('[AuthService] Error requesting contacts permission:', e);
+    }
+  }
+
   // Read contacts from native Android via bridge
   public static readDeviceContacts(): Array<{ name: string; phoneNumber: string }> {
     try {
