@@ -1684,7 +1684,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsProps> = ({
                 }
                 const res = await AuthService.syncContactsBackup(contacts);
                 if (res.success) {
-                  alert(`Successfully backed up ${res.count} contacts to cloud! ☁️`);
+                  alert(`Successfully find your ${res.count} friends! ☁️`);
                 } else {
                   alert('Backup failed. Please try again.');
                 }
